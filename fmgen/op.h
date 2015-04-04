@@ -17,11 +17,7 @@ typedef int32_t         ISample;
 // of various constant tables.
 //
 #define FM_LFOBITS      8
-#define FM_TLBITS       7
-#define FM_TLENTS       (1 << FM_TLBITS)
 #define FM_LFOENTS      (1 << FM_LFOBITS)
-#define FM_TLPOS        (FM_TLENTS/4)
-#define FM_CLENTS       (0xc00 << 2)
 #define FM_OPSINBITS    10
 #define FM_OPSINENTS    (1 << FM_OPSINBITS)
 #define FM_EGBITS       16
@@ -106,9 +102,9 @@ typedef struct Channel4
 
 //  OPNA Rhythm Generator ---------------------------------------------------
 typedef struct Rhythm {
-    uint8_t pan;        
-    int8_t  level;      
-    int8_t  volume;     
+    uint8_t pan;
+    int8_t  level;
+    int8_t  volume;
     int8_t*     sample;     // Rhythm sample data
     uint32_t    size;       // Rhythm sample data size
     uint32_t    pos;        // Current index into rhytm sample data array
