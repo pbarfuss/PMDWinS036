@@ -5,13 +5,13 @@
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met: 
+modification, are permitted provided that the following conditions are met:
 
 1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer. 
+   list of conditions and the following disclaimer.
 2. Redistributions in binary form must reproduce the above copyright notice,
    this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution. 
+   and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -74,7 +74,6 @@ void PSGSetClock(PSG *psg, uint32_t clock, uint32_t rate)
     psg->tperiodbase = (uint32_t)((1 << toneshift ) / 4.0f * clock / rate);
     psg->eperiodbase = (uint32_t)((1 << envshift  ) / 4.0f * clock / rate);
 
-    // ¿¿¿¿¿¿¿    
     tmp = ((psg->reg[0] + psg->reg[1] * 256) & 0xfff);
     psg->speriod[0] = tmp ? psg->tperiodbase / tmp : psg->tperiodbase;
     tmp = ((psg->reg[2] + psg->reg[3] * 256) & 0xfff);
@@ -104,8 +103,8 @@ void MakeEnvelopTable(void)
     if (!enveloptable[0][0]) {
         uint32_t *ptr = enveloptable[0];
         for (i=0; i<16*2; i++) {
-            uint8_t v = ((table1[i] & 0x2) ? 31 : 0);   
-            for (j=0; j<32; j++) { 
+            uint8_t v = ((table1[i] & 0x2) ? 31 : 0);
+            for (j=0; j<32; j++) {
                 *ptr++ = EmitTable[v];
                 v += table3[table1[i]];
             }
@@ -120,7 +119,7 @@ void MakeEnvelopTable(void)
 //  TODO: Possibly allow enabling tone/noise output for each channel independently?
 //
 void PSGSetChannelMask(PSG *psg, int c)
-{ 
+{
     int i;
     psg->mask = c;
     for (i=0; i<3; i++)
@@ -163,13 +162,13 @@ void PSGSetReg(PSG *psg, uint8_t regnum, uint8_t data)
             tmp = ((psg->reg[0] + psg->reg[1] * 256) & 0xfff);
             psg->speriod[0] = tmp ? psg->tperiodbase / tmp : psg->tperiodbase;
             break;
-        
+
         case 2:     // ChB Fine Tune
         case 3:     // ChB Coarse Tune
             tmp = ((psg->reg[2] + psg->reg[3] * 256) & 0xfff);
-            psg->speriod[1] = tmp ? psg->tperiodbase / tmp : psg->tperiodbase;    
+            psg->speriod[1] = tmp ? psg->tperiodbase / tmp : psg->tperiodbase;
             break;
-        
+
         case 4:     // ChC Fine Tune
         case 5:     // ChC Coarse Tune
             tmp = ((psg->reg[4] + psg->reg[5] * 256) & 0xfff);
@@ -188,7 +187,7 @@ void PSGSetReg(PSG *psg, uint8_t regnum, uint8_t data)
         case 9:
             psg->olevel[1] = psg->mask & 2 ? EmitTable[(data & 15) * 2 + 1] : 0;
             break;
-        
+
         case 10:
             psg->olevel[2] = psg->mask & 4 ? EmitTable[(data & 15) * 2 + 1] : 0;
             break;
@@ -218,7 +217,7 @@ void PSGInit(PSG *psg)
     for (i=31; i>=2; i--)
     {
         EmitTable[i] = lrintf(base);
-        base /= 1.189207115f;
+        base *= 0.840896415f; /* 1.0f / 1.189207115f */
     }
     EmitTable[1] = 0;
     EmitTable[0] = 0;
@@ -251,12 +250,13 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
     uint8_t chenable[3];
     uint8_t r7 = ~psg->reg[7];
     unsigned int i, k = 0;
+    int x, y, z;
 
     if ((r7 & 0x3f) | ((psg->reg[8] | psg->reg[9] | psg->reg[10]) & 0x1f)) {
         chenable[0] = (r7 & 0x01) && (psg->speriod[0] <= (1 << toneshift));
         chenable[1] = (r7 & 0x02) && (psg->speriod[1] <= (1 << toneshift));
         chenable[2] = (r7 & 0x04) && (psg->speriod[2] <= (1 << toneshift));
-        
+
         int noise, sample;
         uint32_t env;
         uint32_t* p1 = ((psg->mask & 1) && (psg->reg[ 8] & 0x10)) ? &env : &psg->olevel[0];
@@ -265,7 +265,6 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
         #define SCOUNT(ch)  (psg->scount[ch] >> toneshift)
 
         if (p1 != &env && p2 != &env && p3 != &env) {
-            // ¿¿¿¿¿
             for (i=0; i<nsamples; i++) {
                 psg->ncount++;
                 if(psg->ncount >= psg->nperiod) {
@@ -277,7 +276,6 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                 noise = (psg->rng & 1);
                 sample = 0;
                 {
-                    int x, y, z;
                     x = ((SCOUNT(0) & chenable[0]) | ((r7 >> 3) & noise)) - 1;     // 0 or -1
                     sample += (psg->olevel[0] + x) ^ x;
                     psg->scount[0] += psg->speriod[0];
@@ -288,11 +286,10 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (psg->olevel[2] + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample = Limit16(sample) >> 2;
-                dest[k++] += sample;
+                sample >>= 2;
+                dest[k++] += Limit16(sample);
             }
 
-            // ¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
             psg->ecount = (psg->ecount >> 8) + (psg->eperiod >> 8) * nsamples;
             if (psg->ecount >= (1 << (envshift+6-8))) {
                 if ((psg->reg[0x0d] & 0x0b) != 0x0a)
@@ -301,7 +298,6 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
             }
             psg->ecount <<= 8;
         } else {
-            // ¿¿¿¿¿¿¿¿
             for (i=0; i<nsamples; i++) {
                 psg->ncount++;
                 if(psg->ncount >= psg->nperiod) {
@@ -320,7 +316,6 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                             psg->ecount |= (1 << (envshift+5));
                         psg->ecount &= (1 << (envshift+6)) - 1;
                     }
-                    int x, y, z;
                     x = ((SCOUNT(0) & chenable[0]) | ((r7 >> 3) & noise)) - 1;     // 0 or -1
                     sample += (*p1 + x) ^ x;
                     psg->scount[0] += psg->speriod[0];
@@ -331,8 +326,8 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (*p3 + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample = Limit16(sample) >> 2;
-                dest[k++] += sample;
+                sample >>= 2;
+                dest[k++] += Limit16(sample);
             }
         }
     }
