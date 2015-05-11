@@ -1,5 +1,7 @@
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -9,7 +11,6 @@
 #include <windows.h>
 #endif
 #include "pmdwin.h"
-#include "libaout/audio_out.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -121,7 +122,7 @@ static int music_load(PMDWIN *pmd, wchar_t *filename)
     size_t size;
     uint8_t *musbuf;
 
-    if (map_file(filename, (void**)&musbuf, &size) != NTSTATUS_SUCCESS) { 
+    if (map_file(filename, (void**)&musbuf, &size) != NTSTATUS_SUCCESS) {
         return ERR_OPEN_MUSIC_FILE;
     }
     result = music_load3(pmd, musbuf, size);
@@ -141,7 +142,7 @@ static int music_load(PMDWIN *pmd, char *filename)
     }
 
     fstat(fd, &st);
-    size = st.st_size;    
+    size = st.st_size;
     read(fd, musbuf, size);
     close(fd);
     result = music_load3(pmd, musbuf, size);
@@ -160,7 +161,7 @@ static void usage(void) {
     DWORD done;
     HANDLE errh = GetStdHandle(STD_ERROR_HANDLE);
 #endif
-    const char *usage_str = 
+    const char *usage_str =
 "pmdwin -f <output file> -l <loop count> -m <device mask> -c <channel mask> -t <time> [PMD File]\n\
        -f - Write output to wavfile\n\
        -l - Loop n times (default is once - use 0 for infinite loop)\n\
@@ -168,6 +169,18 @@ static void usage(void) {
        -c - Channel mask: 1,2,4,8,16,32 are OPNA channels 1-6, 64,128,256 are PSG channels 1-3. Once again, or them together\n\
        -t - Play song for n seconds\n\n";
     WriteToConsole(usage_str, strlen(usage_str));
+}
+
+int fdprintf(int fd, const char *fmt, ...) {
+    char buf[4096];
+    va_list arg;
+    int rv;
+
+    va_start(arg, fmt);
+    rv = vsnprintf(buf, 4095, fmt, arg);
+    va_end(arg);
+    WriteToConsole(buf, rv);
+    return rv;
 }
 
 #if defined(WIN32) || defined(WIN64)
@@ -178,7 +191,7 @@ int main(int argc, char **argv) {
     uint32_t i, k, frameno, samplerate_out = SOUND_44K, infloop = 0;
     uint32_t pmd_length = 0, pmd_loopcount = 1;
     int opt, out_fd = -1;
-    uint8_t tofile = 0;
+    char *filename_out = "pmdwin_out.wav";
     int16_t pcmbuf[8192];
     char pmd_title[1024];
     char pmd_compo[1024];
@@ -187,18 +200,12 @@ int main(int argc, char **argv) {
     HANDLE errh = GetStdHandle(STD_ERROR_HANDLE);
 #endif
     char buf[1024];
-    char *devpath = NULL, device = '\0';
-    void *ao = NULL;
 	PMDWIN *pmd = pmdwininit();
 
-    while((opt = getopt(argc, argv, "f:l:m:c:d:t:r:")) != -1) {
+    while((opt = getopt(argc, argv, "D:f:l:m:c:d:t:r:")) != -1) {
         switch(opt) {
-            case 'd':
-              device = argv[++opt][0];
-              break;
             case 'f':
-              tofile = 1;
-              out_fd = open(optarg, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0644);
+              filename_out = optarg;
               break;
             case 'l':
               pmd_loopcount = atoui((uint8_t*)optarg);
@@ -222,14 +229,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    if(!tofile) {
-        if (!(ao = audio_open(device, devpath, &samplerate_out))) {
-            WriteToConsole("Cannot open sound device, exiting.\n", 35);
-            return -1;
-        }
-    } else {
-        write_wav_header(out_fd, samplerate_out);
+    if ((out_fd = open(filename_out, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0644)) < 0) {
+        fdprintf(2, "Unable to open output filename %s, exiting.\n", filename_out);
+        return -1;
     }
+    write_wav_header(out_fd, samplerate_out);
 
 #if defined(WIN32) || defined(WIN64)
     SetConsoleOutputCP(65001); // UTF-8
@@ -237,14 +241,10 @@ int main(int argc, char **argv) {
 
     for (k = optind; k < argc; k++) {
         music_load(pmd, argv[k]);
-        memcpy(pmd_title, "Title = ", 8);
-        _getmemo3(pmd, pmd_title+8, NULL, 0, 1);
-        i = strlen(pmd_title); pmd_title[i++] = '\n';
-        WriteToConsole(pmd_title, i);
-        memcpy(pmd_compo, "Composer = ", 11);
-        _getmemo3(pmd, pmd_compo+11, NULL, 0, 2);
-        i = strlen(pmd_compo); pmd_compo[i++] = '\n';
-        WriteToConsole(pmd_compo, i);
+        _getmemo3(pmd, pmd_title, NULL, 0, 1);
+        _getmemo3(pmd, pmd_compo, NULL, 0, 2);
+        fdprintf(2, "Title = %s, Composer = %s\n",
+                 pmd_title, pmd_compo);
         setpcmrate(pmd, samplerate_out);
         music_start(pmd);
         i = 0;
@@ -258,20 +258,12 @@ int main(int argc, char **argv) {
             int ret = getstatus(pmd, buf+1, 1022);
             WriteToConsole(buf, ret+1);
             getpcmdata(pmd, pcmbuf, 4096);
-            if (tofile) {
-              write(out_fd, pcmbuf, 8192);
-            } else {
-              audio_write_s16(ao, pcmbuf, 4096);
-            }
+            write(out_fd, pcmbuf, 8192);
             i++;
         }
         WriteToConsole("\n", 1);
     }
-    if (!tofile) {
-        audio_close(ao);
-    } else {
-        close(out_fd);
-    }
+    close(out_fd);
     return 0;
 }
 
