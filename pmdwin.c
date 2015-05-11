@@ -4660,7 +4660,7 @@ unsigned int getstatus(PMDWIN *pmd, char *buf, unsigned int bufsize)
 //=============================================================================
 //  メモの取得（内部動作）
 //=============================================================================
-char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
+char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al)
 {
     uint8_t   *si, *mmlbuf;
     int     i, dx;
@@ -4860,14 +4860,13 @@ static unsigned int sjis_to_utf8(uint8_t *outbuf, uint8_t *inbuf, unsigned int i
     return (utf8str - utf8str_start);
 }
 
-char* _getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
+char* _getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al)
 {
-    char buf[mdata_def*1024];
+    char buf[1024];
     _getmemo(pmd, (char *)buf, musdata, size, al);
     sjis_to_utf8((uint8_t*)dest, (uint8_t*)buf, strlen(buf)+1);
     return dest;
 }
-
 
 //=============================================================================
 //  パートのマスク
