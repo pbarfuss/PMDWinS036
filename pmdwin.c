@@ -49,19 +49,11 @@ static const uint8_t part_table[][3] = {       // for PMDB2
 
 static char *notes[12] = {
     "C ", "Db", "D ", "Eb", "E ", "F ", "F#", "G ", "G#", "A ", "Bb", "B "
-}; 
-
-static char *drums[6] = {
-    "Bass   ", "Snare  ", "RideCym", "Hi-Hat ", "Tom-Tom", "Rim    " 
 };
 
-static inline unsigned int av_log2(unsigned int x) {
-    unsigned int ret;
-    __asm__ volatile("or $1, %1 \n\t"
-             "bsr %1, %0 \n\t"
-             :"=a"(ret) : "D"(x));
-    return ret;
-}
+static char *drums[6] = {
+    "Bass   ", "Snare  ", "RideCym", "Hi-Hat ", "Tom-Tom", "Rim    "
+};
 
 /******************************************************************************
 ;   <89>ｹ<8a>KDATA(FM)
@@ -157,7 +149,7 @@ void effend(EFFWORK *effwork, OPNA *opna)
 void efffor(EFFWORK *effwork, OPNA *opna, const int *si)
 {
     int     al, ch, cl;
-    
+
     al = *si++;
     if(al == -1) {
         effend(effwork, opna);
@@ -168,17 +160,17 @@ void efffor(EFFWORK *effwork, OPNA *opna, const int *si)
         ch = *si;
         PSGSetReg(&(opna->psg), 5, *si++);       // 周波数セット
         effwork->eswthz = (ch << 8) + cl;
-        
+
         effwork->eswnhz = *si;
         PSGSetReg(&(opna->psg), 6, *si++);       // ノイズ
-        
+
         PSGSetReg(&(opna->psg), 7, ((*si++ << 2) & 0x24) | (PSGGetReg(&(opna->psg), 0x07) & 0xdb));
-        
+
         PSGSetReg(&(opna->psg), 10, *si++);      // ボリューム
         PSGSetReg(&(opna->psg), 11, *si++);      // エンベロープ周波数
-        PSGSetReg(&(opna->psg), 12, *si++);      // 
+        PSGSetReg(&(opna->psg), 12, *si++);      //
         PSGSetReg(&(opna->psg), 13, *si++);      // エンベロープPATTERN
-        
+
         effwork->eswtst = *si++;     // スイープ増分 (TONE)
         effwork->eswnst = *si++;     // スイープ増分 (NOISE)
         effwork->eswnct = effwork->eswnst & 15;       // スイープカウント (NOISE)
@@ -202,7 +194,7 @@ void eff_main(EFFWORK *effwork, OPNA *opna, uint8_t *partmask, int al)
     if(effwork->effon <= priority) {
         *partmask |= 2;       // Part Mask
         efffor(effwork, opna, efftbl[al]);             // １発目を発音
-        effwork->effon = priority; 
+        effwork->effon = priority;
                                                 //  優先順位を設定(発音開始)
     }
 }
@@ -246,7 +238,7 @@ void TimerA_main(PMDWIN *pmd)
     if(pmd->effwork.effon) {
         effplay(&pmd->effwork, &pmd->opna);      //      SSG効果音処理
     }
-    
+
     pmd->open_work.TimerAflag = 0;
 }
 
@@ -292,7 +284,7 @@ void keyoffp(PMDWIN *pmd, QQ *qq)
 void keyon(PMDWIN *pmd, QQ *qq)
 {
     int al;
-    
+
     if(qq->onkai == 255) return;        // ｷｭｳﾌ ﾉ ﾄｷ
     uint32_t op = ((pmd->open_work.partb-1)&7)|(!!pmd->open_work.fmsel << 2);
     switch(op) {
@@ -317,13 +309,13 @@ void keyon(PMDWIN *pmd, QQ *qq)
         default:
             break;
     }
-    
+
     if(pmd->open_work.fmsel == 0) {
         al = pmd->open_work.omote_key[pmd->open_work.partb-1] | qq->slotmask;
         if(qq->sdelay_c) {
             al &= qq->sdelay_m;
         }
-        
+
         pmd->open_work.omote_key[pmd->open_work.partb-1] = al;
         OPNASetReg(&pmd->opna, 0x28, (pmd->open_work.partb-1) | al);
     } else {
@@ -331,7 +323,7 @@ void keyon(PMDWIN *pmd, QQ *qq)
         if(qq->sdelay_c) {
             al &= qq->sdelay_m;
         }
-        
+
         pmd->open_work.ura_key[pmd->open_work.partb-1] = al;
         OPNASetReg(&pmd->opna, 0x28, ((pmd->open_work.partb-1) | al) | 4);
     }
@@ -344,7 +336,7 @@ void keyon(PMDWIN *pmd, QQ *qq)
 void keyonp(PMDWIN *pmd, QQ *qq)
 {
     int ah, al;
-    
+
     if(qq->onkai == 255) return;        // ｷｭｳﾌ ﾉ ﾄｷ
     int op = ((pmd->open_work.partb-1)&3);
     switch(op) {
@@ -366,7 +358,7 @@ void keyonp(PMDWIN *pmd, QQ *qq)
     ah = ~(ah & qq->psgpat);
     al &= ah;
     PSGSetReg(&(pmd->opna.psg), 7, al);
-    
+
     // PSG ﾉｲｽﾞ ｼｭｳﾊｽｳ ﾉ ｾｯﾄ
     if(pmd->open_work.psnoi != pmd->open_work.psnoi_last && pmd->effwork.effon == 0) {
         PSGSetReg(&(pmd->opna.psg), 6, pmd->open_work.psnoi);
@@ -384,18 +376,18 @@ void fm_block_calc(int *cx, int *ax)
 {
     while(*ax >= 0x26a) {
         if(*ax < (0x26a*2)) return;
-        
+
         *cx += 0x800;           // oct.up
         if(*cx != 0x4000) {
             *ax -= 0x26a;       // 4d2h-26ah
         } else {                // ﾓｳ ｺﾚｲｼﾞｮｳ ｱｶﾞﾝﾅｲﾖﾝ
             *cx = 0x3800;
-            if(*ax >= 0x800) 
+            if(*ax >= 0x800)
                 *ax = 0x7ff;    // 4d2h
             return;
         }
     }
-    
+
     while(*ax < 0x26a) {
         *cx -= 0x800;           // oct.down
         if(*cx >= 0) {
@@ -419,21 +411,21 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
 {
     int     ax_, bh, ch, si;
     int     shiftmask = 0x80;
-    
+
     si = cx;
-    
+
     if((qq->volmask & 0x0f) == 0) {
         bh = 0xf0;          // all
     } else {
         bh = qq->volmask;   // bh=lfo1 mask 4321xxxx
     }
-    
+
     if((qq->_volmask & 0x0f) == 0) {
         ch = 0xf0;          // all
     } else {
         ch = qq->_volmask;  // ch=lfo2 mask 4321xxxx
     }
-    
+
     //  slot    4
     if(qq->slotmask & 0x80) {
         ax_ = ax;
@@ -441,17 +433,17 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
         if((bh & shiftmask) && (qq->lfoswi & 0x01)) ax += qq->lfodat;
         if((ch & shiftmask) && (qq->lfoswi & 0x10)) ax += qq->_lfodat;
         shiftmask >>= 1;
-        
+
         cx = si;
         fm_block_calc(&cx, &ax);
         ax |= cx;
-        
+
         OPNASetReg(&pmd->opna, 0xa6, ax >> 8);
         OPNASetReg(&pmd->opna, 0xa2, ax & 0xff);
-        
+
         ax = ax_;
     }
-    
+
     //  slot    3
     if(qq->slotmask & 0x40) {
         ax_ = ax;
@@ -459,17 +451,17 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
         if((bh & shiftmask) && (qq->lfoswi & 0x01)) ax += qq->lfodat;
         if((ch & shiftmask) && (qq->lfoswi & 0x10)) ax += qq->_lfodat;
         shiftmask >>= 1;
-        
+
         cx = si;
         fm_block_calc(&cx, &ax);
         ax |= cx;
-        
+
         OPNASetReg(&pmd->opna, 0xac, ax >> 8);
         OPNASetReg(&pmd->opna, 0xa8, ax & 0xff);
-        
+
         ax = ax_;
     }
-    
+
     //  slot    2
     if(qq->slotmask & 0x20) {
         ax_ = ax;
@@ -477,17 +469,17 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
         if((bh & shiftmask) && (qq->lfoswi & 0x01)) ax += qq->lfodat;
         if((ch & shiftmask) && (qq->lfoswi & 0x10)) ax += qq->_lfodat;
         shiftmask >>= 1;
-        
+
         cx = si;
         fm_block_calc(&cx, &ax);
         ax |= cx;
-        
+
         OPNASetReg(&pmd->opna, 0xae, ax >> 8);
         OPNASetReg(&pmd->opna, 0xaa, ax & 0xff);
-        
+
         ax = ax_;
     }
-    
+
     //  slot    1
     if(qq->slotmask & 0x10) {
         ax_ = ax;
@@ -497,10 +489,10 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
         cx = si;
         fm_block_calc(&cx, &ax);
         ax |= cx;
-        
+
         OPNASetReg(&pmd->opna, 0xad, ax >> 8);
         OPNASetReg(&pmd->opna, 0xa9, ax & 0xff);
-        
+
         ax = ax_;
     }
 }
@@ -509,29 +501,29 @@ static void ch3_special(PMDWIN *pmd, QQ *qq, int ax, int cx)
 static void otodasi(PMDWIN *pmd, QQ *qq)
 {
     int     ax, cx;
-    
+
     if(qq->fnum == 0) return;
     if(qq->slotmask == 0) return;
-    
+
     cx = (qq->fnum & 0x3800);       // cx=BLOCK
     ax = (qq->fnum) & 0x7ff;        // ax=FNUM
 
     // Portament/LFO/Detune SET
     ax += qq->porta_num + qq->detune;
-    
+
     if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0 && pmd->open_work.ch3mode != 0x3f) {
         ch3_special(pmd, qq, ax, cx);
     } else {
         if(qq->lfoswi & 1) {
             ax += qq->lfodat;
         }
-        
+
         if(qq->lfoswi & 0x10) {
             ax += qq->_lfodat;
         }
-        
+
         fm_block_calc(&cx, &ax);
-        
+
         // SET BLOCK/FNUM TO OPN
         ax |= cx;
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + pmd->open_work.partb+0xa4-1, ax >> 8);
@@ -561,13 +553,13 @@ static void cm_clear(PMDWIN *pmd, int *ah, int *al)
 static void ch3mode_set(PMDWIN *pmd, QQ *qq)
 {
     int     ah, al;
-    
+
     if(qq == &pmd->FMPart[3-1]) {
         al = 1;
     } else {
         al = 8;
     }
-    
+
     if((qq->slotmask & 0xf0) == 0) {    // s0
         cm_clear(pmd, &ah, &al);
     } else if(qq->slotmask != 0xf0) {
@@ -586,11 +578,11 @@ static void ch3mode_set(PMDWIN *pmd, QQ *qq)
     } else {
         cm_clear(pmd, &ah, &al);
     }
-    
+
     if(ah == pmd->open_work.ch3mode) return;     // 以前と変更無しなら何もしない
     pmd->open_work.ch3mode = ah;
     OPNASetReg(&pmd->opna, 0x27, ah & 0xcf);         // Resetはしない
-    
+
     //  効果音モードに移った場合はそれ以前のFM3パートで音程書き換え
     if(ah == 0x3f || qq == &pmd->FMPart[2]) return;
     if(pmd->FMPart[2].partmask == 0) otodasi(pmd, &pmd->FMPart[2]);
@@ -656,9 +648,9 @@ static uint8_t *panset_ex(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int al = *(char *)si++;
     si++;       // 逆走flagは読み飛ばす
-    
+
     if(al > 0) {
-        al = 2; 
+        al = 2;
         panset_main(pmd, qq, al);
     } else if(al == 0) {
         al = 3;
@@ -678,14 +670,14 @@ static uint8_t *panset_ex(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static void fnumset(PMDWIN *pmd, QQ *qq, int al)
 {
     int     ax,bx;
-    
+
     if((al & 0x0f) != 0x0f) {       // 音符の場合
         qq->onkai = al;
-        
+
         // BLOCK/FNUM CALICULATE
         bx = al & 0x0f;     // bx=onkai
         ax = fnum_data[bx];
-        
+
         // BLOCK SET
         ax |= (((al >> 1) & 0x38) << 8);
         qq->fnum = ax;
@@ -731,27 +723,27 @@ static void volset(PMDWIN *pmd, QQ *qq)
 {
     int bh, bl, cl, dh;
     uint8_t vol_tbl[4] = {0, 0, 0, 0};
-    
+
     if(qq->slotmask == 0) return;
     if(qq->volpush) {
         cl = qq->volpush - 1;
     } else {
         cl = qq->volume;
     }
-    
+
     //--------------------------------------------------------------------
     //  音量down計算
     //--------------------------------------------------------------------
     if(pmd->open_work.fm_voldown) {
         cl = ((256-pmd->open_work.fm_voldown) * cl) >> 8;
     }
-        
+
     //------------------------------------------------------------------------
     //  音量をcarrierに設定 & 音量LFO処理
     //      input   cl to Volume[0-127]
     //          bl to SlotMask
     //------------------------------------------------------------------------
-    
+
     bh=0;                   // Vol Slot Mask
     bl=qq->slotmask;        // ch=SlotMask Push
 
@@ -759,16 +751,16 @@ static void volset(PMDWIN *pmd, QQ *qq)
     vol_tbl[1] = 0x80;
     vol_tbl[2] = 0x80;
     vol_tbl[3] = 0x80;
-    
+
     cl = 255-cl;            // cl=carrierに設定する音量+80H(add)
     bl &= qq->carrier;      // bl=音量を設定するSLOT xxxx0000b
     bh |= bl;
-    
+
     if(bl & 0x80) vol_tbl[0] = cl;
     if(bl & 0x40) vol_tbl[1] = cl;
     if(bl & 0x20) vol_tbl[2] = cl;
     if(bl & 0x10) vol_tbl[3] = cl;
-    
+
     if(cl != 255) {
         if(qq->lfoswi & 2) {
             bl = qq->volmask;
@@ -776,7 +768,7 @@ static void volset(PMDWIN *pmd, QQ *qq)
             bh |= bl;
             fmlfo_sub(pmd, qq, qq->lfodat, bl, vol_tbl);
         }
-        
+
         if(qq->lfoswi & 0x20) {
             bl = qq->_volmask;
             bl &= qq->slotmask;
@@ -784,9 +776,9 @@ static void volset(PMDWIN *pmd, QQ *qq)
             fmlfo_sub(pmd, qq, qq->_lfodat, bl, vol_tbl);
         }
     }
-    
+
     dh = 0x4c - 1 + pmd->open_work.partb;      // dh=FM Port Address
-    
+
     if(bh & 0x80) volset_slot(pmd, dh,    qq->slot4, vol_tbl[0]);
     if(bh & 0x40) volset_slot(pmd, dh-8,  qq->slot3, vol_tbl[1]);
     if(bh & 0x20) volset_slot(pmd, dh-4,  qq->slot2, vol_tbl[2]);
@@ -802,7 +794,7 @@ static void volset(PMDWIN *pmd, QQ *qq)
 static uint8_t *toneadr_calc(PMDWIN *pmd, QQ *qq, int dl)
 {
     uint8_t *bx;
-    
+
     if(pmd->open_work.prg_flg == 0) {
         return NULL;
         //return pmd->open_work.tondat + (dl << 5);
@@ -823,36 +815,36 @@ static uint8_t *toneadr_calc(PMDWIN *pmd, QQ *qq, int dl)
 static unsigned int silence_fmpart(PMDWIN *pmd, QQ *qq)
 {
     int     dh;
-    
+
     if(qq->neiromask == 0) {
         return 1;
     }
-    
+
     dh = pmd->open_work.partb + 0x40 - 1;
-    
+
     if(qq->neiromask & 0x80) {
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, 127);
         OPNASetReg(&pmd->opna, (pmd->open_work.fmsel + 0x40) + dh, 127);
     }
     dh += 4;
-    
+
     if(qq->neiromask & 0x40) {
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, 127);
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + 0x40 + dh, 127);
     }
     dh += 4;
-    
+
     if(qq->neiromask & 0x20) {
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, 127);
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + 0x40 + dh, 127);
     }
     dh += 4;
-    
+
     if(qq->neiromask & 0x10) {
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, 127);
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + 0x40 + dh, 127);
     }
-    
+
     kof1(pmd, qq);
     return 0;
 }
@@ -869,12 +861,12 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
 {
     uint8_t   *bx;
     int     ah, al, dh;
-    
+
     bx = toneadr_calc(pmd, qq, dl);
     if(silence_fmpart(pmd, qq)) {
         // neiromask=0の時 (TLのworkのみ設定)
         bx += 4;
-        
+
         // tl設定
         qq->slot1 = bx[0];
         qq->slot3 = bx[1];
@@ -882,21 +874,21 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
         qq->slot4 = bx[3];
         return;
     }
-    
+
     //=========================================================================
     //  音色設定メイン
     //=========================================================================
     //-------------------------------------------------------------------------
     //  AL/FBを設定
     //-------------------------------------------------------------------------
-    
+
     dh = 0xb0 - 1 + pmd->open_work.partb;
     if(pmd->open_work.af_check) {      // ALG/FBは設定しないmodeか？
         dl = qq->alg_fb;
     } else {
         dl = bx[24];
     }
-    
+
     if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
         if(pmd->open_work.af_check != 0) { // ALG/FBは設定しないmodeか？
             dl = pmd->open_work.fm3_alg_fb;
@@ -907,109 +899,109 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
             pmd->open_work.fm3_alg_fb = dl;
         }
     }
-    
+
     OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     qq->alg_fb = dl;
     dl &= 7;        // dl = algo
-    
+
     //-------------------------------------------------------------------------
     //  Carrierの位置を調べる (VolMaskにも設定)
     //-------------------------------------------------------------------------
-    
+
     if((qq->volmask & 0x0f) == 0) {
         qq->volmask = carrier_table[dl];
     }
-    
+
     if((qq->_volmask & 0x0f) == 0) {
         qq->_volmask = carrier_table[dl];
     }
-    
+
     qq->carrier = carrier_table[dl];
     ah = carrier_table[dl+8];   // slot2/3の逆転データ(not済み)
     al = qq->neiromask;
     ah &= al;               // AH=TL用のmask / AL=その他用のmask
-    
+
     //-------------------------------------------------------------------------
     //  各音色パラメータを設定 (TLはモジュレータのみ)
     //-------------------------------------------------------------------------
-    
+
     dh = 0x30 - 1 + pmd->open_work.partb;
     dl = *bx++;             // DT/ML
     if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;             // TL
     if(ah & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(ah & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(ah & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(ah & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;             // KS/AR
     if(al & 0x08) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x04) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x02) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x01) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;             // AM/DR
     if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;             // SR
     if(al & 0x08) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x04) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x02) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x01) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
@@ -1019,15 +1011,15 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     }
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
@@ -1036,15 +1028,15 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
     dl = *bx++;             // SL/RR
     if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
-    
+
     dl = *bx++;
     if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
     dh+=4;
@@ -1071,7 +1063,7 @@ static uint8_t *comat(PMDWIN *pmd, QQ *qq, uint8_t *si)
 
     qq->voicenum = al = *si++;
     dl = qq->voicenum;
-    
+
     if(qq->partmask == 0) { // パートマスクされているか？
         neiroset(pmd, qq, dl);
         return si;
@@ -1079,13 +1071,13 @@ static uint8_t *comat(PMDWIN *pmd, QQ *qq, uint8_t *si)
         bx = toneadr_calc(pmd, qq, dl);
         qq->alg_fb = dl = bx[24];
         bx += 4;
-        
-        // tl設定 
+
+        // tl設定
         qq->slot1 = bx[0];
         qq->slot3 = bx[1];
         qq->slot2 = bx[2];
         qq->slot4 = bx[3];
-        
+
         //  FM3chで、マスクされていた場合、fm3_alg_fbを設定
         if(pmd->open_work.partb == 3 && qq->neiromask) {
             if(pmd->open_work.fmsel == 0) {
@@ -1094,12 +1086,12 @@ static uint8_t *comat(PMDWIN *pmd, QQ *qq, uint8_t *si)
                     al = pmd->open_work.fm3_alg_fb & 0x38;     // fbは前の値を使用
                     dl = (dl & 7) | al;
                 }
-                
+
                 pmd->open_work.fm3_alg_fb = dl;
                 qq->alg_fb = al;
             }
         }
-        
+
     }
     return si;
 }
@@ -1111,13 +1103,13 @@ static uint8_t *comat(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *hlfo_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     qq->fmpan = (qq->fmpan & 0xc0) | *si++;
-    
+
     if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
         // 2608の時のみなので part_eはありえない
         //  FM3の場合は 4つのパート総て設定
         pmd->FMPart[2].fmpan = qq->fmpan;
     }
-    
+
     if(qq->partmask == 0) {     // パートマスクされているか？
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + pmd->open_work.partb + 0xb4 - 1,
             calc_panout(qq));
@@ -1133,7 +1125,7 @@ static uint8_t *slotmask_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     uint8_t   *bx;
     int     ah, al, bl;
-    
+
     ah = al = *si++;
 
     if(al &= 0x0f) {
@@ -1147,7 +1139,7 @@ static uint8_t *slotmask_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
         }
         qq->carrier = carrier_table[bl & 7];
     }
-    
+
     ah &= 0xf0;
     if(qq->slotmask != ah) {
         qq->slotmask = ah;
@@ -1156,7 +1148,7 @@ static uint8_t *slotmask_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
         } else {
             qq->partmask &= 0xdf;   // s0以外の時パートマスク解除
         }
-        
+
         if(ch3_setting(pmd, qq)) {       // FM3chの場合のみ ch3modeの変更処理
             // ch3なら、それ以前のFM3パートでkeyon処理
             if(qq != &pmd->FMPart[2]) {
@@ -1166,7 +1158,7 @@ static uint8_t *slotmask_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
                 }
             }
         }
-        
+
         ah = 0;
         if(qq->slotmask & 0x80) ah += 0x11;     // slot4
         if(qq->slotmask & 0x40) ah += 0x44;     // slot3
@@ -1184,31 +1176,31 @@ static uint8_t *slotmask_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *slotdetune_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     ax, bl;
-    
+
     if(pmd->open_work.partb != 3 || pmd->open_work.fmsel) {
         return si+3;
     }
-    
+
     bl = *si++;
     ax = *(short *)si;
     si+=2;
-    
+
     if(bl & 1) {
         pmd->open_work.slot_detune1 = ax;
     }
-    
+
     if(bl & 2) {
         pmd->open_work.slot_detune2 = ax;
     }
-    
+
     if(bl & 4) {
         pmd->open_work.slot_detune3 = ax;
     }
-    
+
     if(bl & 8) {
         pmd->open_work.slot_detune4 = ax;
     }
-    
+
     if(pmd->open_work.slot_detune1 || pmd->open_work.slot_detune2 ||
             pmd->open_work.slot_detune3 || pmd->open_work.slot_detune4) {
             pmd->open_work.slotdetune_flag = 1;
@@ -1227,31 +1219,31 @@ static uint8_t *slotdetune_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *slotdetune_set2(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     ax, bl;
-    
+
     if(pmd->open_work.partb != 3 || pmd->open_work.fmsel) {
         return si+3;
     }
-    
+
     bl = *si++;
     ax = *(short *)si;
     si+=2;
-    
+
     if(bl & 1) {
         pmd->open_work.slot_detune1 += ax;
     }
-    
+
     if(bl & 2) {
         pmd->open_work.slot_detune2 += ax;
     }
-    
+
     if(bl & 4) {
         pmd->open_work.slot_detune3 += ax;
     }
-    
+
     if(bl & 8) {
         pmd->open_work.slot_detune4 += ax;
     }
-    
+
     if(pmd->open_work.slot_detune1 || pmd->open_work.slot_detune2 ||
             pmd->open_work.slot_detune3 || pmd->open_work.slot_detune4) {
         pmd->open_work.slotdetune_flag = 1;
@@ -1334,7 +1326,7 @@ static uint8_t *special_0c0h(PMDWIN *pmd, QQ *qq, uint8_t *si, uint8_t al)
         case 0xf7 : si++; break;
         case 0xf6 : si++; break;
         case 0xf5 : break;
-        default : 
+        default :
             si--;
             *si = 0x80;
     }
@@ -1348,9 +1340,9 @@ static uint8_t *special_0c0h(PMDWIN *pmd, QQ *qq, uint8_t *si, uint8_t al)
 static void neiro_reset(PMDWIN *pmd, QQ *qq)
 {
     int     dh, al, s1, s2, s3, s4;
-    
+
     if(qq->neiromask == 0) return;
-    
+
     s1 = qq->slot1;
     s2 = qq->slot2;
     s3 = qq->slot3;
@@ -1362,23 +1354,23 @@ static void neiro_reset(PMDWIN *pmd, QQ *qq)
     qq->slot2 = s2;
     qq->slot3 = s3;
     qq->slot4 = s4;
-    
+
     al = ((~qq->carrier) & qq->slotmask) & 0xf0;
         // al<- TLを再設定していいslot 4321xxxx
     if(al) {
         dh = 0x4c - 1 + pmd->open_work.partb;  // dh=TL FM Port Address
         if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, s4);
-        
+
         dh -= 8;
         if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, s3);
-        
+
         dh += 4;
         if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, s2);
-        
+
         dh -= 8;
         if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, s1);
     }
-    
+
     dh = pmd->open_work.partb + 0xb4 - 1;
     OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, calc_panout(qq));
 }
@@ -1459,14 +1451,14 @@ static uint8_t *rhythm_mml_part_mask(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     ah, al, ch, dh, dl;
-    
+
     dh = 0x40 - 1 + pmd->open_work.partb;      // dh=TL FM Port Address
     al = *(char *)si++;
     ah = al & 0x0f;
     ch = (qq->slotmask >> 4) | ((qq->slotmask << 4) & 0xf0);
     ah &= ch;                           // ah=変化させるslot 00004321
     dl = *(char *)si++;
-    
+
     if(al >= 0) {
         dl &= 127;
         if(ah & 1) {
@@ -1475,7 +1467,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
                 OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
             }
         }
-        
+
         dh += 8;
         if(ah & 2) {
             qq->slot2 = dl;
@@ -1483,7 +1475,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
                 OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
             }
         }
-        
+
         dh -= 4;
         if(ah & 4) {
             qq->slot3 = dl;
@@ -1491,7 +1483,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
                 OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
             }
         }
-        
+
         dh += 8;
         if(ah & 8) {
             qq->slot4 = dl;
@@ -1512,7 +1504,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
             }
             qq->slot1 = dl;
         }
-        
+
         dh += 8;
         if(ah & 2) {
             if((dl = (int)qq->slot2 + al) < 0) {
@@ -1524,7 +1516,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
             }
             qq->slot2 = dl;
         }
-        
+
         dh -= 4;
         if(ah & 4) {
             if((dl = (int)qq->slot3 + al) < 0) {
@@ -1536,7 +1528,7 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
             }
             qq->slot3 = dl;
         }
-        
+
         dh += 8;
         if(ah & 8) {
             if((dl = (int)qq->slot4 + al) < 0) {
@@ -1559,13 +1551,13 @@ static uint8_t *tl_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *fb_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al, dh, dl;
-    
+
     dh = pmd->open_work.partb + 0xb0 - 1;  // dh=ALG/FB port address
     al = *(char *)si++;
     if(al >= 0) {
         // in   al 00000xxx 設定するFB
         al = ((al << 3) & 0xff) | (al >> 5);
-        
+
         // in   al 00xxx000 設定するFB
         if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
             if((qq->slotmask & 0x10) == 0) return si;
@@ -1584,14 +1576,14 @@ static uint8_t *fb_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
         } else {
             dl = qq->alg_fb;
         }
-        
+
         dl = (dl >> 3) & 7;
         if((al += dl) >= 0) {
             if(al >= 8) {
                 al = 0x38;
                 if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
                     if((qq->slotmask & 0x10) == 0) return si;
-                    
+
                     dl = (pmd->open_work.fm3_alg_fb & 7) | al;
                     pmd->open_work.fm3_alg_fb = dl;
                 } else {
@@ -1603,7 +1595,7 @@ static uint8_t *fb_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
             } else {
                 // in   al 00000xxx 設定するFB
                 al = ((al << 3) & 0xff) | (al >> 5);
-                
+
                 // in   al 00xxx000 設定するFB
                 if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
                     if((qq->slotmask & 0x10) == 0) return si;
@@ -1620,7 +1612,7 @@ static uint8_t *fb_set(PMDWIN *pmd, QQ *qq, uint8_t *si)
             al = 0;
             if(pmd->open_work.partb == 3 && pmd->open_work.fmsel == 0) {
                 if((qq->slotmask & 0x10) == 0) return si;
-                
+
                 dl = (pmd->open_work.fm3_alg_fb & 7) | al;
                 pmd->open_work.fm3_alg_fb = dl;
             } else {
@@ -1643,14 +1635,14 @@ static void calc_tb_tempo(PMDWIN *pmd)
 {
 //  TEMPO = 0x112C / [ 256 - TB ]   timerB -> tempo
     int temp;
-    
+
     if(256 - pmd->open_work.tempo_d == 0) {
         temp = 255;
     } else {
         temp = (0x112c * 2 / (256 - pmd->open_work.tempo_d) + 1) / 2;
         if(temp > 255) temp = 255;
     }
-    
+
     pmd->open_work.tempo_48 = temp;
     pmd->open_work.tempo_48_push = temp;
 }
@@ -1689,7 +1681,7 @@ static void calc_tempo_tb(PMDWIN *pmd)
 static uint8_t *comt(PMDWIN *pmd, uint8_t *si)
 {
     int     al;
-    
+
     al = *si++;
     if(al < 251) {
         pmd->open_work.tempo_d = al;     // T (FC)
@@ -1753,7 +1745,7 @@ static uint8_t *comedloop(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     ah, al, ax;
     ah = *si++;
-    
+
     if(ah) {
         (*si)++;
         al = *si++;
@@ -1765,7 +1757,7 @@ static uint8_t *comedloop(PMDWIN *pmd, QQ *qq, uint8_t *si)
         si++;
         qq->loopcheck = 1;
     }
-    
+
     ax = *(uint16_t *)si + 2;
     si = pmd->open_work.mmlbuf + ax;
     return si;
@@ -1782,7 +1774,7 @@ static uint8_t *comexloop(PMDWIN *pmd, QQ *qq, uint8_t *si)
     bx = pmd->open_work.mmlbuf;
     bx += *(uint16_t *)si;
     si+=2;
-    
+
     dl = *bx++ - 1;
     if(dl != *bx) return si;
     si = bx + 3;
@@ -1813,7 +1805,7 @@ static uint8_t *psgenvset(QQ *qq, uint8_t *si)
 static uint8_t *rhykey(PMDWIN *pmd, uint8_t *si)
 {
     int dl;
-    
+
     if((dl = (*si++ & pmd->open_work.rhythmmask)) == 0) {
         return si;
     }
@@ -1826,7 +1818,7 @@ static uint8_t *rhykey(PMDWIN *pmd, uint8_t *si)
         if(dl & 0x10) OPNASetReg(&pmd->opna, 0x1c, pmd->open_work.rdat[4]);
         if(dl & 0x20) OPNASetReg(&pmd->opna, 0x1d, pmd->open_work.rdat[5]);
     }
-    
+
     OPNASetReg(&pmd->opna, 0x10, dl);
     if(dl >= 0x80) {
         pmd->open_work.rshot_dat &= (~dl);
@@ -1844,14 +1836,14 @@ static uint8_t *rhyvs(PMDWIN *pmd, uint8_t *si)
 {
     int     *bx;
     int     dh, dl;
-    
+
     dl = *si & 0x1f;
     dh = *si++ >> 5;
     bx = &pmd->open_work.rdat[dh-1];
     dh = 0x18 - 1 + dh;
     dl |= (*bx & 0xc0);
     *bx = dl;
-    
+
     OPNASetReg(&pmd->opna, dh, dl);
     return si;
 }
@@ -1861,18 +1853,18 @@ static uint8_t *rhyvs_sft(PMDWIN *pmd, uint8_t *si)
 {
     int     *bx;
     int     al, dh, dl;
-    
+
     bx = &pmd->open_work.rdat[*si-1];
     dh = *si++ + 0x18 - 1;
     dl = *bx & 0x1f;
-    
+
     al = (*(char *)si++ + dl);
     if(al >= 32) {
         al = 31;
     } else if(al < 0) {
         al = 0;
     }
-    
+
     dl = (al &= 0x1f);
     dl = *bx = ((*bx & 0xe0) | dl);
     OPNASetReg(&pmd->opna, dh, dl);
@@ -1887,12 +1879,12 @@ static uint8_t *rpnset(PMDWIN *pmd, uint8_t *si)
 {
     int     *bx;
     int     dh, dl;
-    
+
     dl = (*si & 3) << 6;
-    
+
     dh = (*si++ >> 5) & 0x07;
     bx = &pmd->open_work.rdat[dh-1];
-    
+
     dh += 0x18 - 1;
     dl |= (*bx & 0x1f);
     *bx = dl;
@@ -1940,10 +1932,10 @@ static uint8_t *rmsvs_sft(PMDWIN *pmd, uint8_t *si)
 static uint8_t *vol_one_up_fm(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = (int)qq->volume + 1 + *si++;
     if(al > 128) al = 128;
-    
+
     qq->volpush = al;
     pmd->open_work.volpush_flag = 1;
     return si;
@@ -1956,7 +1948,7 @@ static uint8_t *vol_one_up_fm(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *vol_one_up_psg(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = qq->volume + *si++;
     if(al > 15) al = 15;
     qq->volpush = ++al;
@@ -1968,14 +1960,14 @@ static uint8_t *vol_one_up_psg(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *vol_one_down(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = qq->volume - *si++;
     if(al < 0) {
         al = 0;
     } else {
         if(al >= 255) al = 254;
     }
-    
+
     qq->volpush = ++al;
     pmd->open_work.volpush_flag = 1;
     return si;
@@ -2005,7 +1997,7 @@ static uint8_t *extend_psgenvset(QQ *qq, uint8_t *si)
     qq->eenv_rr = *si & 0x0f;
     qq->eenv_sl = ((*si++ >> 4) & 0x0f) ^ 0x0f;
     qq->eenv_al = *si++ & 0x0f;
-    
+
     if(qq->envf != -1) {    // ノーマル＞拡張に移行したか？
         qq->envf = -1;
         qq->eenv_count = 4;     // RR
@@ -2018,16 +2010,16 @@ static uint8_t *extend_psgenvset(QQ *qq, uint8_t *si)
 static uint8_t *mdepth_count(QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = *si++;
-    
+
     if(al >= 0x80) {
         if((al &= 0x7f) == 0) al = 255;
         qq->_mdc = al;
         qq->_mdc2 = al;
         return si;
     }
-    
+
     if(al == 0) al = 255;
     qq->mdc = al;
     qq->mdc2 = al;
@@ -2041,7 +2033,7 @@ static uint8_t *mdepth_count(QQ *qq, uint8_t *si)
 static int oshift(PMDWIN *pmd, QQ *qq, int al)
 {
     int bl, bh, dl;
-    
+
     if(al == 0x0f) return al;
 
     if(al == 0x0c) {
@@ -2054,7 +2046,7 @@ static int oshift(PMDWIN *pmd, QQ *qq, int al)
 
     dl = qq->shift + qq->shift_def;
     if(dl == 0) return al;
-    
+
     bl = (al & 0x0f);       // bl = ONKAI
     bh = (al & 0xf0) >> 4;  // bh = OCT
 
@@ -2075,7 +2067,7 @@ static int oshift(PMDWIN *pmd, QQ *qq, int al)
             bh++;
             bl -= 12;
         }
-        
+
         if(bh > 7) bh = 7;
         return (bh << 4) | bl;
     }
@@ -2094,24 +2086,24 @@ static int oshiftp(PMDWIN *pmd, QQ *qq, int al)
 static void fnumsetp(PMDWIN *pmd, QQ *qq, int al)
 {
     int ax, bx, cl;
-    
+
     if((al & 0x0f) == 0x0f) {       // ｷｭｳﾌ ﾅﾗ FNUM ﾆ 0 ｦ ｾｯﾄ
         qq->onkai = 255;
         if(qq->lfoswi & 0x11) return;
         qq->fnum = 0;   // 音程LFO未使用
         return;
     }
-    
+
     qq->onkai = al;
-    
+
     cl = (al >> 4) & 0x0f;  // cl=oct
     bx = al & 0x0f;         // bx=onkai
-    
+
     ax = psg_tune_data[bx];
     if(cl > 0) {
         ax = (ax + 1) >> cl;
     }
-    
+
     qq->fnum = ax;
 }
 
@@ -2129,13 +2121,13 @@ static uint8_t *calc_q(PMDWIN *pmd, QQ *qq, uint8_t *si)
         qq->qdat = 0;
         return si;
     }
-    
+
     dl = qq->qdata;
     if(qq->qdatb) {
         dl += (qq->leng * qq->qdatb) >> 8;
     }
 
-#if 0   
+#if 0
     if(qq->qdat3) {     //  Random-Q
         ax = rand() % ((qq->qdat3 & 0x7f) + 1);
         if((qq->qdat3 & 0x80) == 0) {
@@ -2152,7 +2144,7 @@ static uint8_t *calc_q(PMDWIN *pmd, QQ *qq, uint8_t *si)
             qq->qdat = 0;
             return si;
         }
-        
+
         if(dl < dh) {
             qq->qdat = dl;
         } else {
@@ -2172,7 +2164,7 @@ static uint8_t *calc_q(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static void volsetp(PMDWIN *pmd, QQ *qq)
 {
     int     ax, dl;
-    
+
     if(qq->envf == 3 || (qq->envf == -1 && qq->eenv_count == 0)) return;
 
     if(qq->volpush) {
@@ -2180,12 +2172,12 @@ static void volsetp(PMDWIN *pmd, QQ *qq)
     } else {
         dl = qq->volume;
     }
-    
+
     //------------------------------------------------------------------------
     //  音量down計算
     //------------------------------------------------------------------------
     dl = ((256-pmd->open_work.ssg_voldown) * dl) >> 8;
-    
+
     //------------------------------------------------------------------------
     //  ENVELOPE 計算
     //------------------------------------------------------------------------
@@ -2193,7 +2185,7 @@ static void volsetp(PMDWIN *pmd, QQ *qq)
         OPNASetReg(&pmd->opna, pmd->open_work.partb+8-1, 0);
         return;
     }
-    
+
     if(qq->envf == -1) {
         if(qq->eenv_volume == 0) {
             OPNASetReg(&pmd->opna, pmd->open_work.partb+8-1, 0);
@@ -2216,24 +2208,24 @@ static void volsetp(PMDWIN *pmd, QQ *qq)
         OPNASetReg(&pmd->opna, pmd->open_work.partb+8-1, dl);
         return;
     }
-    
+
     if(qq->lfoswi & 2) {
         ax = qq->lfodat;
     } else {
         ax = 0;
     }
-    
+
     if(qq->lfoswi & 0x20) {
         ax += qq->_lfodat;
     }
-    
+
     dl = dl + ax;
     if(dl <  0) {
         OPNASetReg(&pmd->opna, pmd->open_work.partb+8-1, 0);
         return;
     }
     if(dl > 15) dl = 15;
-    
+
     //------------------------------------------------------------------------
     //  出力
     //------------------------------------------------------------------------
@@ -2247,7 +2239,7 @@ static void volsetp(PMDWIN *pmd, QQ *qq)
 static void otodasip(PMDWIN *pmd, QQ *qq)
 {
     int     ax, dx;
-    
+
     if(qq->fnum == 0) return;
 
     // PSG Portament set
@@ -2260,7 +2252,7 @@ static void otodasip(PMDWIN *pmd, QQ *qq)
         if(qq->lfoswi & 1) {
             ax -= qq->lfodat;
         }
-        
+
         if(qq->lfoswi & 0x10) {
             ax -= qq->_lfodat;
         }
@@ -2282,11 +2274,11 @@ static void otodasip(PMDWIN *pmd, QQ *qq)
             } else {
                 dx = 0;
             }
-            
+
             if(qq->lfoswi & 0x10) {
                 dx += qq->_lfodat;
             }
-            
+
             if(dx) {
                 dx = (ax * dx) >> 12;
                 if(dx >= 0) {
@@ -2298,7 +2290,7 @@ static void otodasip(PMDWIN *pmd, QQ *qq)
             ax -= dx;
         }
     }
-    
+
     // TONE SET
     if(ax >= 0x1000) {
         if(ax >= 0) {
@@ -2307,7 +2299,7 @@ static void otodasip(PMDWIN *pmd, QQ *qq)
             ax = 0;
         }
     }
-    
+
     OPNASetReg(&pmd->opna, (pmd->open_work.partb-1) * 2, ax & 0xff);
     OPNASetReg(&pmd->opna, (pmd->open_work.partb-1) * 2 + 1, ax >> 8);
 }
@@ -2319,11 +2311,11 @@ static void otodasip(PMDWIN *pmd, QQ *qq)
 static void md_inc(PMDWIN *pmd, QQ *qq)
 {
     int     al;
-        
+
     if(--qq->mdspd) return;
-    
+
     qq->mdspd = qq->mdspd2;
-    
+
     if(qq->mdc == 0) return;        // count = 0
     if(qq->mdc <= 127) {
         qq->mdc--;
@@ -2358,12 +2350,12 @@ static void md_inc(PMDWIN *pmd, QQ *qq)
 static void lfo_main(PMDWIN *pmd, QQ *qq)
 {
     int     al, ax;
-    
+
     if(qq->speed != 1) {
         if(qq->speed != 255) qq->speed--;
         return;
     }
-    
+
     qq->speed = qq->speed2;
     if(qq->lfo_wave == 0 || qq->lfo_wave == 4 || qq->lfo_wave == 5) {
         //  三角波      lfowave = 0,4,5
@@ -2376,7 +2368,7 @@ static void lfo_main(PMDWIN *pmd, QQ *qq)
         if((qq->lfodat += ax) == 0) {
             md_inc(pmd, qq);
         }
-    
+
         al = qq->time;
         if(al != 255) {
             if(--al == 0) {
@@ -2409,7 +2401,7 @@ static void lfo_main(PMDWIN *pmd, QQ *qq)
         //ノコギリ波    lfowave = 1
         qq->lfodat += qq->step;
         al = qq->time;
-        if(al != -1) {      
+        if(al != -1) {
             al--;
             if(al == 0)  {
                 qq->lfodat = -qq->lfodat;
@@ -2436,18 +2428,18 @@ static void lfo_main(PMDWIN *pmd, QQ *qq)
 static unsigned int lfo(PMDWIN *pmd, QQ *qq)
 {
     int     ax, ch;
-    
+
     if(qq->delay) {
         qq->delay--;
         return 0;
     }
-    
+
     if(qq->extendmode & 2) {    // TimerAと合わせるか？
                                 // そうじゃないなら無条件にlfo処理
         ch = pmd->open_work.TimerAtime - pmd->open_work.lastTimerAtime;
         if(ch == 0) return 0;
         ax = qq->lfodat;
-        
+
         for(; ch > 0; ch--) {
             lfo_main(pmd, qq);
         }
@@ -2455,7 +2447,7 @@ static unsigned int lfo(PMDWIN *pmd, QQ *qq)
         ax = qq->lfodat;
         lfo_main(pmd, qq);
     }
-    
+
     if(ax == qq->lfodat) {
         return 0;
     }
@@ -2479,7 +2471,7 @@ static void lfo_change(PMDWIN *pmd, QQ *qq)
     swap(&qq->lfodat, &qq->_lfodat);
     qq->lfoswi = ((qq->lfoswi & 0x0f) << 4) + (qq->lfoswi >> 4);
     qq->extendmode = ((qq->extendmode & 0x0f) << 4) + (qq->extendmode >> 4);
-    
+
     swap(&qq->delay, &qq->_delay);
     swap(&qq->speed, &qq->_speed);
     swap(&qq->step, &qq->_step);
@@ -2502,7 +2494,7 @@ static void lfo_exit(PMDWIN *pmd, QQ *qq)
     if((qq->lfoswi & 3) != 0) {     // 前が & の場合 -> 1回 LFO処理
         lfo(pmd, qq);
     }
-    
+
     if((qq->lfoswi & 0x30) != 0) {  // 前が & の場合 -> 1回 LFO処理
         lfo_change(pmd, qq);
         lfo(pmd, qq);
@@ -2519,7 +2511,7 @@ static void lfoinit_main(PMDWIN *pmd, QQ *qq)
     qq->step = qq->step2;
     qq->time = qq->time2;
     qq->mdc = qq->mdc2;
-    
+
     if(qq->lfo_wave == 2 || qq->lfo_wave == 3) {    // 矩形波 or ランダム波？
         qq->speed = 1;  // delay直後にLFOが掛かるようにする
     } else {
@@ -2552,9 +2544,9 @@ static uint8_t *lfoset(PMDWIN *pmd, QQ *qq, uint8_t *si)
 static uint8_t *lfoswitch(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int al;
-    
+
     al = *si++;
-    
+
     if(al & 0xf8) {
         al = 1;
     }
@@ -2585,23 +2577,23 @@ static void lfin1(PMDWIN *pmd, QQ *qq)
     if(qq->hldelay) {
         OPNASetReg(&pmd->opna, pmd->open_work.fmsel + pmd->open_work.partb+0xb4-1, (qq->fmpan) & 0xc0);
     }
-    
+
     qq->sdelay_c = qq->sdelay;
-    
+
     if(qq->lfoswi & 3) {    // LFOは未使用
         if((qq->lfoswi & 4) == 0) { //keyon非同期か?
             lfoinit_main(pmd, qq);
         }
         lfo(pmd, qq);
     }
-    
+
     if(qq->lfoswi & 0x30) { // LFOは未使用
         if((qq->lfoswi & 0x40) == 0) {  //keyon非同期か?
             lfo_change(pmd, qq);
             lfoinit_main(pmd, qq);
             lfo_change(pmd, qq);
         }
-        
+
         lfo_change(pmd, qq);
         lfo(pmd, qq);
         lfo_change(pmd, qq);
@@ -2628,7 +2620,7 @@ static void lfoinit(PMDWIN *pmd, QQ *qq, int al)
         lfo_exit(pmd, qq);
         return;
     }
-    
+
     qq->porta_num = 0;              // ポルタメントは初期化
     if((pmd->open_work.tieflag & 1) == 0) {
         lfin1(pmd, qq);
@@ -2653,13 +2645,13 @@ static void lfoinitp(PMDWIN *pmd, QQ *qq, int al)
         lfo_exit(pmd, qq);
         return;
     }
-    
+
     qq->porta_num = 0;              // ポルタメントは初期化
     if(pmd->open_work.tieflag & 1) {
         lfo_exit(pmd, qq);
         return;
     }
-    
+
     //------------------------------------------------------------------------
     //  ソフトウエアエンベロープ初期化
     //------------------------------------------------------------------------
@@ -2667,12 +2659,12 @@ static void lfoinitp(PMDWIN *pmd, QQ *qq, int al)
         qq->envf = 0;
         qq->eenv_volume = 0;
         qq->eenv_ar = qq->eenv_arc;
-        
+
         if(qq->eenv_ar == 0) {
             qq->envf = 1;   // ATTACK=0 ... ｽｸﾞ Decay ﾆ
             qq->eenv_volume = qq->eenv_dr;
         }
-        
+
         qq->eenv_sr = qq->eenv_src;
         qq->eenv_rr = qq->eenv_rrc;
         lfin1(pmd, qq);
@@ -2684,13 +2676,13 @@ static void lfoinitp(PMDWIN *pmd, QQ *qq, int al)
         } else {
             qq->eenv_drc = qq->eenv_dr-16;
         }
-        
+
         if(qq->eenv_sr < 16) {
             qq->eenv_src = (qq->eenv_sr-16)*2;
         } else {
             qq->eenv_src = qq->eenv_sr-16;
         }
-        
+
         qq->eenv_rrc = (qq->eenv_rr) * 2 - 16;
         qq->eenv_volume = qq->eenv_al;
         qq->eenv_count = 1;
@@ -2734,35 +2726,35 @@ void porta_calc(QQ *qq)
 static uint8_t *porta(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     ax, cx, cl, bx, bh;
-    
+
     if(qq->partmask) {
         qq->fnum = 0;       //休符に設定
         qq->onkai = 255;
         qq->leng = *(si+2);
         qq->keyon_flag++;
         qq->address = si+3;
-        
+
         if(--pmd->open_work.volpush_flag) {
             qq->volpush = 0;
         }
-        
+
         pmd->open_work.tieflag = 0;
         pmd->open_work.volpush_flag = 0;
         pmd->open_work.loop_work &= qq->loopcheck;
-        
+
         return si+3;        // 読み飛ばす   (Mask時)
     }
-    
+
     lfoinit(pmd, qq, *si);
     fnumset(pmd, qq, oshift(pmd, qq, *si++));
-    
+
     cx = qq->fnum;
     cl = qq->onkai;
     fnumset(pmd, qq, oshift(pmd, qq, *si++));
     bx = qq->fnum;          // bx=ポルタメント先のfnum値
     qq->onkai = cl;
     qq->fnum = cx;          // cx=ポルタメント元のfnum値
-    
+
     bh = (int)((bx / 256) & 0x38) - ((cx / 256) & 0x38);    // 先のoctarb - 元のoctarb
     if(bh) {
         bh /= 8;
@@ -2770,34 +2762,34 @@ static uint8_t *porta(PMDWIN *pmd, QQ *qq, uint8_t *si)
     } else {
         ax = 0;
     }
-        
+
     bx  = (bx & 0x7ff) - (cx & 0x7ff);
     ax += bx;               // ax=26ah*octarb差 + 音程差
-    
+
     qq->leng = *si++;
     si = calc_q(pmd, qq, si);
-    
+
     qq->porta_num2 = ax / qq->leng; // 商
     qq->porta_num3 = ax % qq->leng; // 余り
     qq->lfoswi |= 8;                // Porta ON
-    
+
     if(qq->volpush && qq->onkai != 255) {
         if(--pmd->open_work.volpush_flag) {
             pmd->open_work.volpush_flag = 0;
             qq->volpush = 0;
         }
     }
-    
+
     volset(pmd, qq);
     otodasi(pmd, qq);
     keyon(pmd, qq);
-    
+
     qq->keyon_flag++;
     qq->address = si;
-    
+
     pmd->open_work.tieflag = 0;
     pmd->open_work.volpush_flag = 0;
-    
+
     if(*si == 0xfb) {       // '&'が直後にあったらkeyoffしない
         qq->keyoff_flag = 2;
     } else {
@@ -2821,58 +2813,58 @@ static uint8_t *portap(PMDWIN *pmd, QQ *qq, uint8_t *si)
         qq->leng = *(si+2);
         qq->keyon_flag++;
         qq->address = si+3;
-        
+
         if(--pmd->open_work.volpush_flag) {
             qq->volpush = 0;
         }
-                
+
         pmd->open_work.tieflag = 0;
         pmd->open_work.volpush_flag = 0;
         pmd->open_work.loop_work &= qq->loopcheck;
         return si+3;        // 読み飛ばす   (Mask時)
     }
-    
+
     lfoinitp(pmd, qq, *si);
     fnumsetp(pmd, qq, oshiftp(pmd, qq, *si++));
-    
+
     bx_ = qq->fnum;
     al_ = qq->onkai;
     fnumsetp(pmd, qq, oshiftp(pmd, qq, *si++));
     ax = qq->fnum;          // ax = ポルタメント先のpsg_tune値
-    
+
     qq->onkai = al_;
     qq->fnum = bx_;         // bx = ポルタメント元のpsg_tune値
     ax -= bx_;
-    
+
     qq->leng = *si++;
     si = calc_q(pmd, qq, si);
-    
+
     qq->porta_num2 = ax / qq->leng;     // 商
     qq->porta_num3 = ax % qq->leng;     // 余り
     qq->lfoswi |= 8;                // Porta ON
-    
+
     if(qq->volpush && qq->onkai != 255) {
         if(--pmd->open_work.volpush_flag) {
             pmd->open_work.volpush_flag = 0;
             qq->volpush = 0;
         }
     }
-    
+
     volsetp(pmd, qq);
     otodasip(pmd, qq);
     keyonp(pmd, qq);
-    
+
     qq->keyon_flag++;
     qq->address = si;
-    
+
     pmd->open_work.tieflag = 0;
     pmd->open_work.volpush_flag = 0;
     qq->keyoff_flag = 0;
-    
+
     if(*si == 0xfb) {           // '&'が直後にあったらkeyoffしない
         qq->keyoff_flag = 2;
     }
-    
+
     pmd->open_work.loop_work &= qq->loopcheck;
     return si;
 }
@@ -2884,14 +2876,14 @@ static uint8_t *portap(PMDWIN *pmd, QQ *qq, uint8_t *si)
 uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = *si++;
     switch(al) {
         case 0xff : si = comat(pmd, qq, si); break;
         case 0xfe : qq->qdata = *si++; qq->qdat3 = 0; break;
         case 0xfd : qq->volume = *si++; break;
         case 0xfc : si = comt(pmd, si); break;
-        
+
         case 0xfb : pmd->open_work.tieflag |= 1; break;
         case 0xfa : qq->detune = *(short *)si; si+=2; break;
         case 0xf9 : si = comstloop(pmd, qq, si); break;
@@ -2904,7 +2896,7 @@ uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xf2 : si = lfoset(pmd, qq, si); break;
         case 0xf1 : si = lfoswitch(pmd, qq, si); ch3_setting(pmd, qq); break;
         case 0xf0 : si+=4; break;
-        
+
         case 0xef : OPNASetReg(&pmd->opna, pmd->open_work.fmsel + *si, *(si+1)); si+=2; break;
         case 0xee : si++; break;
         case 0xed : si++; break;
@@ -2921,7 +2913,7 @@ uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xe4 : qq->hldelay = *si++; break;
         //追加 for V2.3
         case 0xe3 : if((qq->volume += *si++) > 127) qq->volume = 127; break;
-        case 0xe2 : 
+        case 0xe2 :
             if(qq->volume < *si) qq->volume = 0; else qq->volume -= *si;
             si++;
             break;
@@ -2963,11 +2955,11 @@ uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xca :
             qq->extendmode = (qq->extendmode & 0xfd) | ((*si++ & 1) << 1);
             break;
-        
+
         case 0xc9 : si++; break;
         case 0xc8 : si = slotdetune_set(pmd, qq, si); break;
         case 0xc7 : si = slotdetune_set2(pmd, qq, si); break;
-        case 0xc6 : break; 
+        case 0xc6 : break;
         case 0xc5 : si = volmask_set(pmd, qq, si); break;
         case 0xc4 : qq->qdatb = *si++; break;
         case 0xc3 : si = panset_ex(pmd, qq, si); break;
@@ -2982,39 +2974,39 @@ uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
             qq->mdepth = *(char *)si++;
             lfo_change(pmd, qq);
             break;
-        
+
         case 0xbc : lfo_change(pmd, qq); qq->lfo_wave=*si++; lfo_change(pmd, qq); break;
         case 0xbb :
             lfo_change(pmd, qq);
             qq->extendmode = (qq->extendmode & 0xfd) | ((*si++ & 1) << 1);
             lfo_change(pmd, qq);
             break;
-        
+
         case 0xba : si = _volmask_set(pmd, qq, si); break;
         case 0xb9 :
             lfo_change(pmd, qq);
             qq->delay = qq->delay2 = *si++; lfoinit_main(pmd, qq);
             lfo_change(pmd, qq);
             break;
-            
+
         case 0xb8 : si = tl_set(pmd, qq, si); break;
         case 0xb7 : si = mdepth_count(qq, si); break;
         case 0xb6 : si = fb_set(pmd, qq, si); break;
-        case 0xb5 : 
+        case 0xb5 :
             qq->sdelay_m = (~(*si++) << 4) & 0xf0;
             qq->sdelay_c = qq->sdelay = *si++;
             break;
-        
+
         case 0xb4 : si+=16; break;
         case 0xb3 : qq->qdat2 = *si++; break;
         case 0xb2 : qq->shift_def = *(char *)si++; break;
         case 0xb1 : qq->qdat3 = *si++; break;
-        
-        default : 
+
+        default :
             si--;
             *si = 0x80;
     }
-    
+
     return si;
 }
 
@@ -3025,13 +3017,13 @@ uint8_t * commands(PMDWIN *pmd, QQ *qq, uint8_t *si)
 void fmmain(PMDWIN *pmd, QQ *qq)
 {
     uint8_t   *si;
-    
+
     if(qq->address == NULL) return;
-    
+
     si = qq->address;
-    
+
     qq->leng--;
-    
+
     if(qq->partmask) {
         qq->keyoff_flag = -1;
     } else {
@@ -3043,11 +3035,11 @@ void fmmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     // LENGTH CHECK
     if(qq->leng == 0) {
         if(qq->partmask == 0) qq->lfoswi &= 0xf7;
-        
+
         while(1) {
             if(*si > 0x80 && *si != 0xda) {
                 si = commands(pmd, qq, si);
@@ -3077,27 +3069,27 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                     //  TONE SET
                     lfoinit(pmd, qq, *si);
                     fnumset(pmd, qq, oshift(pmd, qq, *si++));
-                    
+
                     qq->leng = *si++;
                     si = calc_q(pmd, qq, si);
-                    
+
                     if(qq->volpush && qq->onkai != 255) {
                         if(--pmd->open_work.volpush_flag) {
                             pmd->open_work.volpush_flag = 0;
                             qq->volpush = 0;
                         }
                     }
-                    
+
                     volset(pmd, qq);
                     otodasi(pmd, qq);
                     keyon(pmd, qq);
-                    
+
                     qq->keyon_flag++;
                     qq->address = si;
-                    
+
                     pmd->open_work.tieflag = 0;
                     pmd->open_work.volpush_flag = 0;
-                    
+
                     if(*si == 0xfb) {       // '&'が直後にあったらkeyoffしない
                         qq->keyoff_flag = 2;
                     } else {
@@ -3113,11 +3105,11 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                     qq->leng = *si++;
                     qq->keyon_flag++;
                     qq->address = si;
-                    
+
                     if(--pmd->open_work.volpush_flag) {
                         qq->volpush = 0;
                     }
-                    
+
                     pmd->open_work.tieflag = 0;
                     pmd->open_work.volpush_flag = 0;
                     break;
@@ -3125,7 +3117,7 @@ void fmmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     if(qq->partmask == 0) {
         // LFO & Portament & Fadeout 処理 をして終了
         if(qq->hldelay_c) {
@@ -3134,7 +3126,7 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                         (pmd->open_work.partb - 1 + 0xb4), qq->fmpan);
             }
         }
-        
+
         if(qq->sdelay_c) {
             if(--qq->sdelay_c == 0) {
                 if((qq->keyoff_flag & 1) == 0) {    // 既にkeyoffしたか？
@@ -3142,7 +3134,7 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                 }
             }
         }
-        
+
         if(qq->lfoswi) {
             pmd->open_work.lfo_switch = qq->lfoswi & 8;
             if(qq->lfoswi & 3) {
@@ -3150,7 +3142,7 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                     pmd->open_work.lfo_switch  |= (qq->lfoswi & 3);
                 }
             }
-            
+
             if(qq->lfoswi & 0x30) {
                 lfo_change(pmd, qq);
                 if(lfo(pmd, qq)) {
@@ -3160,15 +3152,15 @@ void fmmain(PMDWIN *pmd, QQ *qq)
                     lfo_change(pmd, qq);
                 }
             }
-            
+
             if(pmd->open_work.lfo_switch & 0x19) {
                 if(pmd->open_work.lfo_switch & 8) {
                     porta_calc(qq);
-                    
+
                 }
                 otodasi(pmd, qq);
             }
-            
+
             if(pmd->open_work.lfo_switch & 0x22) {
                 volset(pmd, qq);
                 pmd->open_work.loop_work &= qq->loopcheck;
@@ -3176,7 +3168,7 @@ void fmmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     pmd->open_work.loop_work &= qq->loopcheck;
 }
 
@@ -3184,14 +3176,14 @@ void fmmain(PMDWIN *pmd, QQ *qq)
 uint8_t * commandsp(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = *si++;
     switch(al) {
         case 0xff : si++; break;
         case 0xfe : qq->qdata = *si++; qq->qdat3 = 0; break;
         case 0xfd : qq->volume = *si++; break;
         case 0xfc : si = comt(pmd, si); break;
-        
+
         case 0xfb : pmd->open_work.tieflag |= 1; break;
         case 0xfa : qq->detune = *(short *)si; si+=2; break;
         case 0xf9 : si = comstloop(pmd, qq, si); break;
@@ -3204,7 +3196,7 @@ uint8_t * commandsp(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xf2 : si = lfoset(pmd, qq, si); break;
         case 0xf1 : si = lfoswitch(pmd, qq, si); break;
         case 0xf0 : si = psgenvset(qq, si); break;
-        
+
         case 0xef : OPNASetReg(&pmd->opna, *si, *(si+1)); si+=2; break;
         case 0xee : pmd->open_work.psnoi = *si++; break;
         case 0xed : qq->psgpat = *si++; break;
@@ -3259,16 +3251,16 @@ uint8_t * commandsp(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xcc :
             qq->extendmode = (qq->extendmode & 0xfe) | (*si++ & 1);
             break;
-        
+
         case 0xcb : qq->lfo_wave = *si++; break;
         case 0xca :
             qq->extendmode = (qq->extendmode & 0xfd) | ((*si++ & 1) << 1);
             break;
-        
+
         case 0xc9 :
             qq->extendmode = (qq->extendmode & 0xfb) | ((*si++ & 1) << 2);
             break;
-        
+
         case 0xc8 : si+=3; break;
         case 0xc7 : si+=3; break;
         case 0xc6 : si+=6; break;
@@ -3279,32 +3271,32 @@ uint8_t * commandsp(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xc1 : break;
         case 0xc0 : si = ssg_mml_part_mask(pmd, qq, si); break;
         case 0xbf : lfo_change(pmd, qq); si = lfoset(pmd, qq, si); lfo_change(pmd, qq);break;
-        case 0xbe : 
+        case 0xbe :
             qq->lfoswi = (qq->lfoswi & 0x8f) | ((*si++ & 7) << 4);
             lfo_change(pmd, qq); lfoinit_main(pmd, qq); lfo_change(pmd, qq);
             break;
-        
+
         case 0xbd :
             lfo_change(pmd, qq);
             qq->mdspd = qq->mdspd2 = *si++;
             qq->mdepth = *(char *)si++;
             lfo_change(pmd, qq);
             break;
-        
+
         case 0xbc : lfo_change(pmd, qq); qq->lfo_wave=*si++; lfo_change(pmd, qq); break;
         case 0xbb :
             lfo_change(pmd, qq);
             qq->extendmode = (qq->extendmode & 0xfd) | ((*si++ & 1) << 1);
             lfo_change(pmd, qq);
             break;
-        
+
         case 0xba : si++; break;
         case 0xb9 :
             lfo_change(pmd, qq);
             qq->delay = qq->delay2 = *si++; lfoinit_main(pmd, qq); break;
             lfo_change(pmd, qq);
             break;
-            
+
         case 0xb8 : si+=2; break;
         case 0xb7 : si = mdepth_count(qq, si); break;
         case 0xb6 : si++; break;
@@ -3313,12 +3305,12 @@ uint8_t * commandsp(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xb3 : qq->qdat2 = *si++; break;
         case 0xb2 : qq->shift_def = *(char *)si++; break;
         case 0xb1 : qq->qdat3 = *si++; break;
-    
-        default : 
+
+        default :
             si--;
             *si = 0x80;
     }
-    
+
     return si;
 }
 
@@ -3333,20 +3325,20 @@ int ssgdrum_check(PMDWIN *pmd, QQ *qq, int al)
     // SSGマスク中はドラムを止めない
     // SSGドラムは鳴ってない
     if((qq->partmask & 1) || ((qq->partmask & 2) == 0)) return 0;
-    
+
     // 普通の効果音は消さない
     if(pmd->effwork.effon >= 2) return 0;
-    
+
     al = (al & 0x0f);
-    
+
     // 休符の時はドラムは止めない
     if(al == 0x0f) return 0;
-    
+
     // SSGドラムはまだ再生中か？
     if(pmd->effwork.effon == 1) {
         effend(&pmd->effwork, &pmd->opna);           // SSGドラムを消す
     }
-    
+
     if((qq->partmask &= 0xfd) == 0) return -1;
     return 0;
 }
@@ -3363,7 +3355,7 @@ void psgmain(PMDWIN *pmd, QQ *qq)
 
     if(qq->address == NULL) return;
     si = qq->address;
-    
+
     qq->leng--;
 
     // KEYOFF CHECK & Keyoff
@@ -3377,11 +3369,11 @@ void psgmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     // LENGTH CHECK
     if(qq->leng == 0) {
         qq->lfoswi &= 0xf7;
-        
+
         // DATA READ
         while(1) {
             if(*si == 0xda && ssgdrum_check(pmd, qq, *si) < 0) {
@@ -3418,42 +3410,42 @@ void psgmain(PMDWIN *pmd, QQ *qq)
                         qq->leng = *si++;
                         qq->keyon_flag++;
                         qq->address = si;
-                        
+
                         if(--pmd->open_work.volpush_flag) {
                             qq->volpush = 0;
                         }
-                        
+
                         pmd->open_work.tieflag = 0;
                         pmd->open_work.volpush_flag = 0;
                         break;
                     }
                 }
-                
+
                 //  TONE SET
                 lfoinitp(pmd, qq, *si);
                 fnumsetp(pmd, qq, oshiftp(pmd, qq, *si++));
-                
+
                 qq->leng = *si++;
                 si = calc_q(pmd, qq, si);
-                
+
                 if(qq->volpush && qq->onkai != 255) {
                     if(--pmd->open_work.volpush_flag) {
                         pmd->open_work.volpush_flag = 0;
                         qq->volpush = 0;
                     }
                 }
-                
+
                 volsetp(pmd, qq);
                 otodasip(pmd, qq);
                 keyonp(pmd, qq);
-                
+
                 qq->keyon_flag++;
                 qq->address = si;
-                
+
                 pmd->open_work.tieflag = 0;
                 pmd->open_work.volpush_flag = 0;
                 qq->keyoff_flag = 0;
-                
+
                 if(*si == 0xfb) {       // '&'が直後にあったらkeyoffしない
                     qq->keyoff_flag = 2;
                 }
@@ -3462,7 +3454,7 @@ void psgmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     pmd->open_work.lfo_switch = (qq->lfoswi & 8);
 
     if(qq->lfoswi) {
@@ -3481,7 +3473,7 @@ void psgmain(PMDWIN *pmd, QQ *qq)
                 lfo_change(pmd, qq);
             }
         }
-        
+
         if(pmd->open_work.lfo_switch & 0x19) {
             if(pmd->open_work.lfo_switch & 0x08) {
                 porta_calc(qq);
@@ -3501,7 +3493,7 @@ void psgmain(PMDWIN *pmd, QQ *qq)
             volsetp(pmd, qq);
         }
     }
-    
+
     pmd->open_work.loop_work &= qq->loopcheck;
 }
 
@@ -3509,14 +3501,14 @@ void psgmain(PMDWIN *pmd, QQ *qq)
 uint8_t * commandsr(PMDWIN *pmd, QQ *qq, uint8_t *si)
 {
     int     al;
-    
+
     al = *si++;
     switch(al) {
         case 0xff : si++; break;
         case 0xfe : si++; break;
         case 0xfd : qq->volume = *si++; break;
         case 0xfc : si = comt(pmd, si); break;
-        
+
         case 0xfb : pmd->open_work.tieflag |= 1; break;
         case 0xfa : qq->detune = *(short *)si; si+=2; break;
         case 0xf9 : si = comstloop(pmd, qq, si); break;
@@ -3529,7 +3521,7 @@ uint8_t * commandsr(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xf2 : si+=4; break;
         case 0xf1 : si++; break;
         case 0xf0 : si+=4; break;
-        
+
         case 0xef : OPNASetReg(&pmd->opna, *si, *(si+1)); si+=2; break;
         case 0xee : si++; break;
         case 0xed : si++; break;
@@ -3610,11 +3602,11 @@ uint8_t * commandsr(PMDWIN *pmd, QQ *qq, uint8_t *si)
         case 0xb2 : si++; break;
         case 0xb1 : si++; break;
 
-        default : 
+        default :
             si--;
             *si = 0x80;
     }
-    
+
     return si;
 }
 
@@ -3625,25 +3617,25 @@ uint8_t * commandsr(PMDWIN *pmd, QQ *qq, uint8_t *si)
 uint8_t * rhythmon(PMDWIN *pmd, QQ *qq, uint8_t *bx, int al, int *result)
 {
     int     cl, dl, bx_;
-    
+
     if(al & 0x40) {
         bx = commandsr(pmd, qq, bx-1);
         *result = 0;
         return bx;
     }
-    
+
     *result = 1;
-    
+
     if(qq->partmask) {      // maskされている場合
         pmd->open_work.kshot_dat = 0;
         return ++bx;
     }
-    
+
     al = ((al << 8) + *bx++) & 0x3fff;
     pmd->open_work.kshot_dat = al;
     if(al == 0) return bx;
     pmd->open_work.rhyadr = bx;
-    
+
     for(cl = 0; cl < 11; cl++) {
         if(al & (1 << cl)) {
             OPNASetReg(&pmd->opna, rhydat[cl][0], rhydat[cl][1]);
@@ -3660,7 +3652,7 @@ uint8_t * rhythmon(PMDWIN *pmd, QQ *qq, uint8_t *bx, int al, int *result)
             }
         }
     }
-    
+
     bx_ = al;
     al = 0;
     do {
@@ -3672,7 +3664,7 @@ uint8_t * rhythmon(PMDWIN *pmd, QQ *qq, uint8_t *bx, int al, int *result)
         eff_main(&pmd->effwork, &pmd->opna, &(pmd->SSGPart[2].partmask), al);
         bx_ >>= 1;
     }while(pmd->open_work.ppsdrv_flag && bx_); // PPSDRVなら２音目以上も鳴らしてみる
-    
+
     return pmd->open_work.rhyadr;
 }
 
@@ -3684,14 +3676,14 @@ void rhythmmain(PMDWIN *pmd, QQ *qq)
 {
     uint8_t   *si, *bx;
     int     al, result;
-    
+
     if(qq->address == NULL) return;
-    
+
     si = qq->address;
-    
+
     if(--qq->leng == 0) {
         bx = pmd->open_work.rhyadr;
-        
+
         rhyms00:
         do {
             result = 1;
@@ -3703,7 +3695,7 @@ void rhythmmain(PMDWIN *pmd, QQ *qq)
                 } else {
                     pmd->open_work.kshot_dat = 0;    //rest
                 }
-                
+
                 al = *bx++;
                 pmd->open_work.rhyadr = bx;
                 qq->leng = al;
@@ -3714,7 +3706,7 @@ void rhythmmain(PMDWIN *pmd, QQ *qq)
                 return;
             }
         }while(result == 0);
-        
+
         while(1) {
             while((al = *si++) != 0x80) {
                 if(al < 0x80) {
@@ -3725,11 +3717,11 @@ void rhythmmain(PMDWIN *pmd, QQ *qq)
                     bx = pmd->open_work.rhyadr = &pmd->open_work.mmlbuf[pmd->open_work.radtbl[al]];
                     goto rhyms00;
                 }
-                
+
                 // al > 0x80
                 si = commandsr(pmd, qq, si-1);
             }
-            
+
             qq->address = --si;
             qq->loopcheck = 3;
             bx = qq->partloop;
@@ -3745,7 +3737,7 @@ void rhythmmain(PMDWIN *pmd, QQ *qq)
             }
         }
     }
-    
+
     pmd->open_work.loop_work &= qq->loopcheck;
 }
 
@@ -3758,11 +3750,11 @@ void mmain(PMDWIN *pmd)
     int     i;
 
     pmd->open_work.loop_work = 3;
-    for(i = 0; i < 3; i++) {    
+    for(i = 0; i < 3; i++) {
         pmd->open_work.partb = i + 1;
         psgmain(pmd, &pmd->SSGPart[i]);
     }
-  
+
     pmd->open_work.fmsel = 0x100;
     for(i = 0; i < 3; i++) {
         pmd->open_work.partb = i + 1;
@@ -4012,7 +4004,7 @@ void data_init(PMDWIN *pmd)
 {
     int     i;
     int     partmask, keyon_flag;
-    
+
     for(i = 0; i < 6; i++) {
         partmask = pmd->FMPart[i].partmask;
         keyon_flag = pmd->FMPart[i].keyon_flag;
@@ -4022,7 +4014,7 @@ void data_init(PMDWIN *pmd)
         pmd->FMPart[i].onkai = 255;
         pmd->FMPart[i].onkai_def = 255;
     }
-    
+
     for(i = 0; i < 3; i++) {
         partmask = pmd->SSGPart[i].partmask;
         keyon_flag = pmd->SSGPart[i].keyon_flag;
@@ -4067,7 +4059,7 @@ void data_init(PMDWIN *pmd)
     pmd->open_work.slot_detune2 = 0;
     pmd->open_work.slot_detune3 = 0;
     pmd->open_work.slot_detune4 = 0;
-    
+
     pmd->open_work.slot3_flag = 0;
     pmd->open_work.ch3mode = 0x3f;
 
@@ -4093,7 +4085,7 @@ void opn_init(PMDWIN *pmd)
         PSGSetReg(&(pmd->opna.psg), 0x06, 0x00);
         pmd->open_work.psnoi_last = 0;
 //@ }
-    
+
     //------------------------------------------------------------------------
     //  PAN/HARDLFO DEFAULT
     //------------------------------------------------------------------------
@@ -4103,10 +4095,10 @@ void opn_init(PMDWIN *pmd)
     OPNASetReg(&pmd->opna, 0x1b4, 0xc0);
     OPNASetReg(&pmd->opna, 0x1b5, 0xc0);
     OPNASetReg(&pmd->opna, 0x1b6, 0xc0);
-    
+
     pmd->open_work.port22h = 0x00;
     OPNASetReg(&pmd->opna, 0x22, 0x00);
-    
+
     //------------------------------------------------------------------------
     //  Rhythm Default = Pan : Mid , Vol : 15
     //------------------------------------------------------------------------
@@ -4114,7 +4106,7 @@ void opn_init(PMDWIN *pmd)
         pmd->open_work.rdat[i] = 0xcf;
     }
     OPNASetReg(&pmd->opna, 0x10, 0xff);
-    
+
     //------------------------------------------------------------------------
     //  リズムトータルレベル　セット
     //------------------------------------------------------------------------
@@ -4140,7 +4132,7 @@ void silence(PMDWIN *pmd)
     OPNASetReg(&pmd->opna, 0x8c, 0xff);
     OPNASetReg(&pmd->opna, 0x8d, 0xff);
     OPNASetReg(&pmd->opna, 0x8e, 0xff);
-    
+
     OPNASetReg(&pmd->opna, 0x180, 0xff);
     OPNASetReg(&pmd->opna, 0x181, 0xff);
     OPNASetReg(&pmd->opna, 0x184, 0xff);
@@ -4149,12 +4141,12 @@ void silence(PMDWIN *pmd)
     OPNASetReg(&pmd->opna, 0x189, 0xff);
     OPNASetReg(&pmd->opna, 0x18c, 0xff);
     OPNASetReg(&pmd->opna, 0x18d, 0xff);
-    
+
     OPNASetReg(&pmd->opna, 0x182, 0xff);
     OPNASetReg(&pmd->opna, 0x186, 0xff);
     OPNASetReg(&pmd->opna, 0x18a, 0xff);
     OPNASetReg(&pmd->opna, 0x18e, 0xff);
-    
+
     OPNASetReg(&pmd->opna, 0x28, 0x00);          // FM KEYOFF
     OPNASetReg(&pmd->opna, 0x28, 0x01);
     OPNASetReg(&pmd->opna, 0x28, 0x02);
@@ -4171,7 +4163,7 @@ void silence(PMDWIN *pmd)
 //@ } else {
 //@     PSGSetReg(&(pmd->opna.psg), 0x07, (PSGGetReg(&(pmd->opna.psg), 0x07) & 0x3f) | 0x9b);
 //@ }
-    
+
     OPNASetReg(&pmd->opna, 0x10, 0xff);          // Rhythm dump
     OPNASetReg(&pmd->opna, 0x110, 0x80);         // TA/TB/EOS を RESET
     OPNASetReg(&pmd->opna, 0x110, 0x18);         // TIMERB/A/EOSのみbit変化あり
@@ -4185,7 +4177,7 @@ void play_init(PMDWIN *pmd)
 {
     int     i;
     uint16_t    *p;
-    
+
     //２．６追加分
     if(*pmd->open_work.mmlbuf != 2*(max_part2+1)) {
         pmd->open_work.prgdat_adr = pmd->open_work.mmlbuf + *(uint16_t *)(&pmd->open_work.mmlbuf[2*(max_part2+1)]);
@@ -4193,7 +4185,7 @@ void play_init(PMDWIN *pmd)
     } else {
         pmd->open_work.prg_flg = 0;
     }
-    
+
     p = (uint16_t *)pmd->open_work.mmlbuf;
 
     //  Part 0,1,2,3,4,5(FM1〜6)の時
@@ -4203,7 +4195,7 @@ void play_init(PMDWIN *pmd)
         } else {
             pmd->FMPart[i].address = &pmd->open_work.mmlbuf[*p];
         }
-        
+
         pmd->FMPart[i].leng = 1;
         pmd->FMPart[i].keyoff_flag = -1;     // 現在keyoff中
         pmd->FMPart[i].mdc = -1;             // MDepth Counter (無限)
@@ -4218,7 +4210,7 @@ void play_init(PMDWIN *pmd)
         pmd->FMPart[i].neiromask = 0xff;     // FM Neiro MASK
         p++;
     }
-    
+
     //  Part 6,7,8(PSG1〜3)の時
     for(i = 0; i < 3; i++) {
         if(pmd->open_work.mmlbuf[*p] == 0x80) {      //先頭が80hなら演奏しない
@@ -4226,7 +4218,7 @@ void play_init(PMDWIN *pmd)
         } else {
             pmd->SSGPart[i].address = &pmd->open_work.mmlbuf[*p];
         }
-        
+
         pmd->SSGPart[i].leng = 1;
         pmd->SSGPart[i].keyoff_flag = -1;    // 現在keyoff中
         pmd->SSGPart[i].mdc = -1;            // MDepth Counter (無限)
@@ -4241,14 +4233,14 @@ void play_init(PMDWIN *pmd)
         p++;
     }
     p++;
-    
+
     //  Part 10(Rhythm)の時
     if(pmd->open_work.mmlbuf[*p] == 0x80) {      //先頭が80hなら演奏しない
         pmd->RhythmPart.address = NULL;
     } else {
         pmd->RhythmPart.address = &pmd->open_work.mmlbuf[*p];
     }
-    
+
     pmd->RhythmPart.leng = 1;
     pmd->RhythmPart.keyoff_flag = -1;    // 現在keyoff中
     pmd->RhythmPart.mdc = -1;            // MDepth Counter (無限)
@@ -4259,7 +4251,7 @@ void play_init(PMDWIN *pmd)
     pmd->RhythmPart.onkai_def = 255;     // rest
     pmd->RhythmPart.volume = 15;         // PPSDRV volume
     p++;
-    
+
     //------------------------------------------------------------------------
     //  Rhythm のアドレステーブルをセット
     //------------------------------------------------------------------------
@@ -4279,18 +4271,18 @@ void setint(PMDWIN *pmd)
     //
     pmd->open_work.tempo_d = 200;
     pmd->open_work.tempo_d_push = 200;
-    
+
     calc_tb_tempo(pmd);
     settempo_b(pmd);
-    
+
     OPNASetReg(&pmd->opna, 0x25, 0x00);          // TIMER A SET (9216μs固定)
     OPNASetReg(&pmd->opna, 0x24, 0x00);          // 一番遅くて丁度いい
     OPNASetReg(&pmd->opna, 0x27, 0x3f);          // TIMER ENABLE
-    
+
     //
     //　小節カウンタリセット
     //
-    
+
     pmd->open_work.opncount = 0;
     pmd->open_work.syousetu = 0;
     pmd->open_work.syousetu_lng = 96;
@@ -4316,7 +4308,7 @@ void mstart(PMDWIN *pmd)
 {
     // TimerB = 0 に設定し、Timer Reset(曲の長さを毎回そろえるため)
     pmd->open_work.tempo_d = 0;
-    settempo_b(pmd);   
+    settempo_b(pmd);
     OPNASetReg(&pmd->opna, 0x27, 0); // TIMER RESET(timerA,Bとも)
 
     //------------------------------------------------------------------------
@@ -4331,7 +4323,7 @@ void mstart(PMDWIN *pmd)
     pmd->pos2 = (char *)pmd->wavbuf2; // buf に余っているサンプルの先頭位置
     pmd->us2 = 0;                // buf に余っているサンプル数
     pmd->upos = 0;               // 演奏開始からの時間(μsec)
-    
+
     //------------------------------------------------------------------------
     //  演奏準備
     //------------------------------------------------------------------------
@@ -4359,14 +4351,14 @@ void TimerB_main(PMDWIN *pmd)
     pmd->open_work.TimerBflag = 1;
     if(pmd->open_work.music_flag) {
         if(pmd->open_work.music_flag & 1) {
-            mstart(pmd);   
+            mstart(pmd);
         }
 
         if(pmd->open_work.music_flag & 2) {
             mstop(pmd);
         }
     }
-    
+
     if(pmd->open_work.play_flag) {
         mmain(pmd);
         settempo_b(pmd);
@@ -4385,7 +4377,7 @@ void opnint_start(PMDWIN *pmd)
     pmd->open_work.rhythmmask = 255;
     pmd->open_work.rhydmy = 255;
     opn_init(pmd);
-    
+
     PSGSetReg(&(pmd->opna.psg), 0x07, 0xbf);
     mstop(pmd);
     setint(pmd);
@@ -4401,12 +4393,12 @@ int music_load3(PMDWIN *pmd, uint8_t *musdata, unsigned int size)
     if(size > sizeof(pmd->mdataarea)) {
         return ERR_WRONG_MUSIC_FILE;
     }
-    
+
     // 020120 ヘッダ解析のみ Towns に対応
     if((musdata[0] > 0x0f && musdata[0] != 0xff) || (musdata[1] != 0x18 && musdata[1] != 0x1a) || musdata[2]) {
         return ERR_WRONG_MUSIC_FILE;        // not PMD data
     }
-    
+
     // メモリを 0x00 で初期化する
     memcpy(pmd->mdataarea, musdata, size);
     return PMDWIN_OK;
@@ -4455,7 +4447,7 @@ static unsigned char pmdwin_init(PMDWIN *pmd)
     //----------------------------------------------------------------
     //  変数の初期化
     //----------------------------------------------------------------
-    
+
     pmd->open_work.MusPart[ 0] = &pmd->FMPart[0];
     pmd->open_work.MusPart[ 1] = &pmd->FMPart[1];
     pmd->open_work.MusPart[ 2] = &pmd->FMPart[2];
@@ -4473,32 +4465,32 @@ static unsigned char pmdwin_init(PMDWIN *pmd)
         pmd->mdataarea[i*2+2] = 0;
     }
     pmd->mdataarea[25] = 0x80;
-    
+
     pmd->open_work.fm_voldown = fmvd_init;       // FM_VOLDOWN
     pmd->open_work._fm_voldown = fmvd_init;      // FM_VOLDOWN
     pmd->open_work.ssg_voldown = 0;              // SSG_VOLDOWN
     pmd->open_work._ssg_voldown = 0;             // SSG_VOLDOWN
     pmd->open_work.rhythm_voldown = 0;           // RHYTHM_VOLDOWN
     pmd->open_work._rhythm_voldown = 0;          // RHYTHM_VOLDOWN
-    
+
     //memset(FMPart, 0, sizeof(FMPart));
     //memset(SSGPart, 0, sizeof(SSGPart));
     //memset(&RhythmPart, 0, sizeof(RhythmPart));
 
     pmd->open_work.music_flag =  0;
     pmd->open_work.ppsdrv_flag = 0;    // PPSDRV FLAG
-    
+
     //----------------------------------------------------------------
     //  曲データ，音色データ格納番地を設定
     //----------------------------------------------------------------
     pmd->open_work.mmlbuf = &pmd->mdataarea[1];
-    
+
     //----------------------------------------------------------------
     //  効果音/FMINT/EFCINTを初期化
     //----------------------------------------------------------------
     pmd->effwork.effon = 0;
     pmd->effwork.psgefcnum = 0xff;
-    
+
     //----------------------------------------------------------------
     //  088/188/288/388 (同INT番号のみ) を初期設定
     //----------------------------------------------------------------
@@ -4507,12 +4499,12 @@ static unsigned char pmdwin_init(PMDWIN *pmd)
     OPNASetReg(&pmd->opna, 0x25, 0x00);
     OPNASetReg(&pmd->opna, 0x26, 0x00);
     OPNASetReg(&pmd->opna, 0x27, 0x3f);
-    
+
     //----------------------------------------------------------------
     //  ＯＰＮ割り込み開始
     //----------------------------------------------------------------
     data_init(pmd);
-    opnint_start(pmd); 
+    opnint_start(pmd);
     return 1;
 }
 
@@ -4673,7 +4665,7 @@ char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
     uint8_t   *si, *mmlbuf;
     int     i, dx;
     int     maxsize;
-    
+
     if(musdata == NULL || size == 0) {
         mmlbuf = pmd->open_work.mmlbuf;
         maxsize = sizeof(pmd->mdataarea) - 1;
@@ -4685,17 +4677,17 @@ char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
         *dest = '\0';           //  曲データが不正
         return NULL;
     }
-    
+
     if(mmlbuf[0] != 0x1a || mmlbuf[1] != 0x00) {
         *dest = '\0';           //  音色がないfile=メモのアドレス取得不能
         return dest;
     }
-    
+
     if(maxsize < 0x18+1) {
         *dest = '\0';           //  曲データが不正
         return NULL;
     }
-    
+
     if(maxsize < *(uint16_t *)&mmlbuf[0x18] - 4 + 3) {
         *dest = '\0';           //  曲データが不正
         return NULL;
@@ -4708,47 +4700,47 @@ char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
             return dest;
         }
     }
-    
+
     if(*(si + 2) >= 0x42) {
         al++;
     }
-    
+
     if(*(si + 2) >= 0x48) {
         al++;
     }
-    
+
     if(al < 0) {
         *dest = '\0';               //  登録なし
         return dest;
     }
-    
+
     si = &mmlbuf[*(uint16_t *)si];
-    
+
     for(i = 0; i <= al; i++) {
         if(maxsize < si - mmlbuf + 1) {
             *dest = '\0';           //  曲データが不正
             return NULL;
         }
-        
+
         dx = *(uint16_t *)si;
         if(dx == 0) {
             *dest = '\0';
             return dest;
         }
-        
+
         if(maxsize < dx) {
             *dest = '\0';           //  曲データが不正
             return NULL;
         }
-        
+
         if(mmlbuf[dx] == '/') {
             *dest = '\0';
             return dest;
         }
-        
+
         si += 2;
     }
-    
+
     for(i = dx; i < maxsize; i++) {
         if(mmlbuf[i] == '\0') break;
     }
@@ -4883,8 +4875,8 @@ char* _getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al)
 int maskon(PMDWIN *pmd, unsigned int ch)
 {
     int     ah, fmseltmp;
-    
-    
+
+
     if(ch >= sizeof(pmd->open_work.MusPart) / sizeof(QQ *)) {
         return ERR_WRONG_PARTNO;        // part number error
     }
@@ -4927,7 +4919,7 @@ int maskon(PMDWIN *pmd, unsigned int ch)
 int maskoff(PMDWIN *pmd, unsigned int ch)
 {
     int     fmseltmp;
-    
+
     if(ch >= sizeof(pmd->open_work.MusPart) / sizeof(QQ *)) {
         return ERR_WRONG_PARTNO;        // part number error
     }
@@ -5073,7 +5065,7 @@ void setpos(PMDWIN *pmd, uint64_t pos)
         OPNASetReg(&pmd->opna, 0x27, pmd->open_work.ch3mode | 0x30);  // TIMER RESET(timerA,Bとも)
         us = OPNAGetNextEvent(&pmd->opna);
         OPNATimerCount(&pmd->opna, us);
-        pmd->upos += us;         
+        pmd->upos += us;
     }
 
     if(pmd->open_work.status2 == -1) {
