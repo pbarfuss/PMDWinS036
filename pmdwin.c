@@ -4862,7 +4862,7 @@ static unsigned int sjis_to_utf8(uint8_t *outbuf, uint8_t *inbuf, unsigned int i
 
 char* _getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al)
 {
-    char buf[1024];
+    char buf[65536];
     _getmemo(pmd, (char *)buf, musdata, size, al);
     sjis_to_utf8((uint8_t*)dest, (uint8_t*)buf, strlen(buf)+1);
     return dest;
