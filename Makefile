@@ -1,25 +1,16 @@
 CC = gcc
-CFLAGS += -Ifmgen -Wall -pipe -O2 -fno-math-errno -fno-omit-frame-pointer -fno-asynchronous-unwind-tables
-
-# Uncomment exactly one of the following:
-+AUDIO_DRV = oss_audio.o
-# AUDIO_DRV = alsa_pcm_api.o
-# CFLAGS += -DUSE_ALSA=1
-# AUDIO_DRV = wave_out.o
+CFLAGS += -Ifmgen -Wall -pipe -O2 -fno-math-errno -fno-trapping-math -fno-omit-frame-pointer -fno-asynchronous-unwind-tables -fwrapv -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
 
 all: pmdwin
 %.o: %.c
-   $(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 clean:
-    rm *.o fmgen/*.o libfmgen.a pmdwin
+	rm *.o fmgen/*.o libfmgen.a pmdwin
 
-pmdwin: pmd_play.o pmdwin.o table.o getopt.o lfg.o $(AUDIO_DRV) fmgen.o
-   $(CC) -o $@ $^
+pmdwin: pmd_play.o pmdwin.o md5.o libfmgen.a
+	$(CC) -o $@ $^
 
-
-libfmgen.a: fmgen/e_expf.o fmgen/opna.o fmgen/psg.o fmgen/rhythmdata.o
-   $(AR) rc $@ $^
-
-
+libfmgen.a:
+	make -C fmgen
 
