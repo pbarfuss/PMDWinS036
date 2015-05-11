@@ -4750,8 +4750,8 @@ char* _getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int
         memcpy(dest, &mmlbuf[dx], maxsize - dx);
         dest[maxsize - dx - 1] = '\0';
     } else {
-        memcpy(dest, &mmlbuf[dx], i);
-        dest[i] = '\0';
+        memcpy(dest, &mmlbuf[dx], i - dx);
+        dest[i - dx] = '\0';
     }
     return dest;
 }
@@ -4862,7 +4862,7 @@ static unsigned int sjis_to_utf8(uint8_t *outbuf, uint8_t *inbuf, unsigned int i
 
 char* _getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al)
 {
-    char buf[65536];
+    char buf[256];
     _getmemo(pmd, (char *)buf, musdata, size, al);
     sjis_to_utf8((uint8_t*)dest, (uint8_t*)buf, strlen(buf)+1);
     return dest;
