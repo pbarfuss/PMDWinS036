@@ -103,7 +103,7 @@ typedef struct qqtag {
     int     porta_num3;         //  2 ポルタメントの加減値（余り）
     int     volume;             //  1 VOLUME
     int     shift;              //  1 ｵﾝｶｲ ｼﾌﾄ ﾉ ｱﾀｲ
-    int     delay;              //  1 LFO   [DELAY] 
+    int     delay;              //  1 LFO   [DELAY]
     int     speed;              //  1   [SPEED]
     int     step;               //  1   [STEP]
     int     time;               //  1   [TIME]
@@ -152,7 +152,7 @@ typedef struct qqtag {
     int     hldelay;            //  1 HardLFO delay
     int     hldelay_c;          //  1 HardLFO delay Counter
     int     _lfodat;            //  2 LFO DATA
-    int     _delay;             //  1 LFO   [DELAY] 
+    int     _delay;             //  1 LFO   [DELAY]
     int     _speed;             //  1       [SPEED]
     int     _step;              //  1       [STEP]
     int     _time;              //  1       [TIME]
@@ -263,13 +263,13 @@ typedef struct OpenWorktag {
 typedef struct _PMDWIN
 {
     OPNA       opna;
-    
+
     OPEN_WORK open_work;
     QQ FMPart[NumOfFMPart], SSGPart[NumOfSSGPart], RhythmPart;
-    
+
     EFFWORK effwork;
     short wavbuf2[nbufsample];
-    
+
     char    *pos2;                      // buf に余っているサンプルの先頭位置
     uint32_t us2;                       // buf に余っているサンプル数
     uint64_t upos;                      // 演奏開始からの時間(μs)
@@ -305,8 +305,8 @@ DLLEXPORT void setfmcalc55k(PMDWIN *pmd, unsigned char flag);
 DLLEXPORT unsigned int getstatus(PMDWIN *pmd, char *buf, unsigned int bufsize);
 DLLEXPORT void setdevmask(PMDWIN *pmd, uint8_t mask);
 DLLEXPORT void setchanmask(PMDWIN *pmd, uint32_t mask);
-DLLEXPORT char * getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al);
-DLLEXPORT char *_getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, int size, int al);
+DLLEXPORT char * getmemo(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al);
+DLLEXPORT char *_getmemo3(PMDWIN *pmd, char *dest, uint8_t *musdata, unsigned int size, int al);
 DLLEXPORT int maskon(PMDWIN *pmd, unsigned int ch);
 DLLEXPORT int maskoff(PMDWIN *pmd, unsigned int ch);
 DLLEXPORT void setfmvoldown(PMDWIN *pmd, int voldown);
