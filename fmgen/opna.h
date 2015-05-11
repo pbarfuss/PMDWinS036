@@ -15,11 +15,11 @@ typedef struct _OPNA
     uint32_t    status;
     Channel4  ch[6];
     Channel4* csmch;
-    
+
     int32_t mixdelta;
     int     mpratio;
     uint8_t    interpolation;
-    
+
     uint8_t timer_status;
     uint8_t regtc;
     uint8_t regta[2];
@@ -29,27 +29,26 @@ typedef struct _OPNA
     int32_t timer_step;
     uint8_t prescale;
     uint8_t devmask;
-    
+
     PSG     psg;
 
     Rhythm  rhythm[6];
     int8_t  rhythmtl;
-    int     rhythmtvol;     
+    int     rhythmtvol;
     uint8_t rhythmkey;
 
     int32_t mixl, mixl1;
-    uint8_t pan[6];
     uint8_t fnum2[9];
-    
-    uint8_t reg22;
-    uint32_t    reg29;
-    uint32_t    statusnext;
 
-    uint32_t    lfocount;
-    uint32_t    lfodcount;
-    
-    uint32_t    fnum[6];
-    uint32_t    fnum3[3];
+    uint8_t reg22;
+    uint32_t reg29;
+    uint32_t statusnext;
+
+    uint32_t lfocount;
+    uint32_t lfodcount;
+
+    uint32_t fnum[6];
+    uint32_t fnum3[3];
 } OPNA;
 
 #ifdef __cplusplus
