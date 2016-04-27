@@ -4977,7 +4977,6 @@ void setrhythmvoldown(PMDWIN *pmd, int voldown)
     pmd->open_work.rhythm_voldown = pmd->open_work._rhythm_voldown = voldown;
     pmd->open_work.rhyvol = 48*4*(256-pmd->open_work.rhythm_voldown)/1024;
     OPNASetReg(&pmd->opna, 0x11, pmd->open_work.rhyvol);
-
 }
 
 
