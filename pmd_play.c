@@ -1,7 +1,5 @@
 #include <stdint.h>
-#include <stdarg.h>
 #include <string.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -11,6 +9,7 @@
 #include <windows.h>
 #endif
 #include "pmdwin.h"
+#include "libaout/audio_out.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -22,6 +21,22 @@ static uint32_t atoui(const uint8_t *str) {
         c = *str++ - 0x30;
         if(c > 9) break;
         num = (num << 1) + (num << 3) + c;
+    }
+    return num;
+}
+
+static inline unsigned int gethex(unsigned int c) {
+  if ((c - 0x30) < 10) return c - 0x30;
+  else return (c|0x20) - 'a' + 10;
+}
+
+static uint32_t atoui16(const uint8_t *str) {
+    uint32_t c, num = 0;
+    if (str[0] == '0' && ((str[1]|0x20) == 'x')) str += 2;
+    while(1) {
+        c = gethex(*str++);
+        if(c > 15) break;
+        num = (num << 4) + c;
     }
     return num;
 }
@@ -122,7 +137,7 @@ static int music_load(PMDWIN *pmd, wchar_t *filename)
     size_t size;
     uint8_t *musbuf;
 
-    if (map_file(filename, (void**)&musbuf, &size) != NTSTATUS_SUCCESS) {
+    if (map_file(filename, (void**)&musbuf, &size) != NTSTATUS_SUCCESS) { 
         return ERR_OPEN_MUSIC_FILE;
     }
     result = music_load3(pmd, musbuf, size);
@@ -142,7 +157,7 @@ static int music_load(PMDWIN *pmd, char *filename)
     }
 
     fstat(fd, &st);
-    size = st.st_size;
+    size = st.st_size;    
     read(fd, musbuf, size);
     close(fd);
     result = music_load3(pmd, musbuf, size);
@@ -161,7 +176,7 @@ static void usage(void) {
     DWORD done;
     HANDLE errh = GetStdHandle(STD_ERROR_HANDLE);
 #endif
-    const char *usage_str =
+    const char *usage_str = 
 "pmdwin -f <output file> -l <loop count> -m <device mask> -c <channel mask> -t <time> [PMD File]\n\
        -f - Write output to wavfile\n\
        -l - Loop n times (default is once - use 0 for infinite loop)\n\
@@ -171,27 +186,15 @@ static void usage(void) {
     WriteToConsole(usage_str, strlen(usage_str));
 }
 
-int fdprintf(int fd, const char *fmt, ...) {
-    char buf[4096];
-    va_list arg;
-    int rv;
-
-    va_start(arg, fmt);
-    rv = vsnprintf(buf, 4095, fmt, arg);
-    va_end(arg);
-    WriteToConsole(buf, rv);
-    return rv;
-}
-
 #if defined(WIN32) || defined(WIN64)
 int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
     uint32_t i, k, frameno, samplerate_out = SOUND_44K, infloop = 0;
-    uint32_t pmd_length = 0, pmd_loopcount = 1;
+    uint32_t pmd_length = 0, pmd_loopcount = 1, pos = 0;
     int opt, out_fd = -1;
-    char *filename_out = "pmdwin_out.wav";
+    uint8_t tofile = 0;
     int16_t pcmbuf[8192];
     char pmd_title[1024];
     char pmd_compo[1024];
@@ -200,40 +203,52 @@ int main(int argc, char **argv) {
     HANDLE errh = GetStdHandle(STD_ERROR_HANDLE);
 #endif
     char buf[1024];
+    char *devpath = NULL, device = '\0';
+    void *ao = NULL;
 	PMDWIN *pmd = pmdwininit();
 
-    while((opt = getopt(argc, argv, "D:f:l:m:c:d:t:r:")) != -1) {
+    while((opt = getopt(argc, argv, "f:l:m:c:d:t:r:s:")) != -1) {
         switch(opt) {
+            case 'd':
+              device = argv[++opt][0];
+              break;
             case 'f':
-              filename_out = optarg;
+              tofile = 1;
+              out_fd = open(optarg, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0644);
               break;
             case 'l':
               pmd_loopcount = atoui((uint8_t*)optarg);
               if(!pmd_loopcount) infloop = 1;
               break;
             case 'c':
-              setchanmask(pmd, atoui((uint8_t*)optarg));
+              setchanmask(pmd, atoui16((uint8_t*)optarg));
               break;
             case 'm':
               setdevmask(pmd, atoui((uint8_t*)optarg));
               break;
             case 't':
-              pmd_length = atoui((uint8_t*)optarg)*1000;
+              pmd_length = atoui((uint8_t*)optarg);
               break;
 	        case 'r':
 	          samplerate_out = atoui((uint8_t*)optarg);
 	          break;
+            case 's':
+              pos = atoui((uint8_t*)optarg);
+              break;
             default:
               usage();
               break;
         }
     }
 
-    if ((out_fd = open(filename_out, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0644)) < 0) {
-        fdprintf(2, "Unable to open output filename %s, exiting.\n", filename_out);
-        return -1;
+    if(!tofile) {
+        if (!(ao = audio_open(device, devpath, &samplerate_out))) {
+            WriteToConsole("Cannot open sound device, exiting.\n", 35);
+            return -1;
+        }
+    } else {
+        write_wav_header(out_fd, samplerate_out);
     }
-    write_wav_header(out_fd, samplerate_out);
 
 #if defined(WIN32) || defined(WIN64)
     SetConsoleOutputCP(65001); // UTF-8
@@ -241,12 +256,18 @@ int main(int argc, char **argv) {
 
     for (k = optind; k < argc; k++) {
         music_load(pmd, argv[k]);
-        _getmemo3(pmd, pmd_title, NULL, 0, 1);
-        _getmemo3(pmd, pmd_compo, NULL, 0, 2);
-        fdprintf(2, "Title = %s, Composer = %s\n",
-                 pmd_title, pmd_compo);
+        memcpy(pmd_title, "Title = ", 8);
+        _getmemo3(pmd, pmd_title+8, NULL, 0, 1);
+        i = strlen(pmd_title); pmd_title[i++] = '\n';
+        WriteToConsole(pmd_title, i);
+        memcpy(pmd_compo, "Composer = ", 11);
+        _getmemo3(pmd, pmd_compo+11, NULL, 0, 2);
+        i = strlen(pmd_compo); pmd_compo[i++] = '\n';
+        WriteToConsole(pmd_compo, i);
         setpcmrate(pmd, samplerate_out);
         music_start(pmd);
+        if (pos)
+            setpos2(pmd, 100 * pos);
         i = 0;
         if(pmd_length != 0) {
             frameno = lrintf(((float)pmd_length*(float)samplerate_out)/(4096.0f*1000.0f));
@@ -258,12 +279,20 @@ int main(int argc, char **argv) {
             int ret = getstatus(pmd, buf+1, 1022);
             WriteToConsole(buf, ret+1);
             getpcmdata(pmd, pcmbuf, 4096);
-            write(out_fd, pcmbuf, 8192);
+            if (tofile) {
+              write(out_fd, pcmbuf, 8192);
+            } else {
+              audio_write_s16(ao, pcmbuf, 4096);
+            }
             i++;
         }
         WriteToConsole("\n", 1);
     }
-    close(out_fd);
+    if (!tofile) {
+        audio_close(ao);
+    } else {
+        close(out_fd);
+    }
     return 0;
 }
 
