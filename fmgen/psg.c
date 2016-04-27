@@ -286,7 +286,7 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (psg->olevel[2] + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample >>= 1;
+                //sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
 
@@ -326,7 +326,7 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (*p3 + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample >>= 1;
+                //sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
         }

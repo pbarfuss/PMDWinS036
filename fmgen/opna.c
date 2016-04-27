@@ -393,6 +393,7 @@ void EGCalc(FMOperator *op)
 // KeyOn, hopefully obvious.
 static void KeyOn(FMOperator *op)
 {
+    //if (!op->keyon && ((op->ar = 31) || (op->ar == 62))) {
     if (!op->keyon) {
         op->keyon = 1;
         if (!op->sl) {
@@ -822,7 +823,7 @@ void OPNASetChannelMask(OPNA *opna, uint32_t mask)
         }
     }
     PSGSetChannelMask(&opna->psg, (mask >> 6));
-    if (mask & 0x200) opna->devmask = 3;
+    //if (!(mask & 0x200)) opna->devmask = 3;
 }
 
 #include <stdio.h>
@@ -1218,12 +1219,11 @@ static void RhythmMix(OPNA *opna, int16_t *buffer, uint32_t count)
         for (i=0; i<6; i++) {
             Rhythm *r = &opna->rhythm[i];
             if ((opna->rhythmkey & (1 << i)) && r->level >= 0) {
-                int db = Limit(opna->rhythmtl+r->level+r->volume, 95, -31);
-                int vol = cltab[db];
+                int db = Limit(opna->rhythmtl+r->level+r->volume, 127, 0);
+                int vol = 4*cltab[db];
 
                 for (j = 0; j < count && r->pos < r->size; j++) {
                     int sample = Limit16(((r->sample[r->pos >> 10] << 8) * vol) >> 12);
-                    sample >>= 2;
                     r->pos += r->step;
                     buffer[j] += sample;
                 }
@@ -1264,7 +1264,7 @@ void MakeTable(void) {
     tablemade = 1;
     for (i=0; i<512; i++)
     {   
-        int c = (int)(((1 << 8) - 1) * expf((float)M_LN2*(-i / 32.0f)));
+        int c = (int)(255.0f * expf((float)M_LN2*(-i / 64.0f)));
         cltab[i] = c;
 //      LOG2("cltab[%4d*2] = %6d\n", i, cltab[i*2]);
     }
