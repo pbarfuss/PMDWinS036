@@ -204,8 +204,6 @@ static void MakeTimeTable(uint32_t ratio)
     if (ratio != currentratio)
     {
         currentratio = ratio;
-        // PG Part
-        rr = (float)ratio / (1 << (2 + FM_RATIOBITS - FM_PGBITS));
 
         // EG
         for (h=1; h<16; h++)
@@ -401,10 +399,16 @@ static void KeyOn(FMOperator *op)
 {
     if (!op->keyon) {
         op->keyon = 1;
-        if (op->phase == off || op->phase == release) {
-            ShiftPhase(op, attack);
-            op->out = op->out2 = 0;
-            op->pgcount = 0;
+        if (!op->sl) {
+            ShiftPhase(op, sustain);
+            //op->out = op->out2 = 0;
+            //op->pgcount = 0;
+        } else {
+            if (op->phase == off || op->phase == release) {
+                ShiftPhase(op, attack);
+                op->out = op->out2 = 0;
+                op->pgcount = 0;
+            }
         }
     }
 }
@@ -597,6 +601,8 @@ static void SetPrescaler(OPNA *opna, uint32_t p)
         }
         uint32_t ratio = ((fmclock << FM_RATIOBITS) + opna->rate/2) / opna->rate;
         opna->timer_step = (int32_t)(1000000.0f * 65536.0f/fmclock);
+        // PG Part
+        rr = (float)ratio / (1 << (2 + FM_RATIOBITS - FM_PGBITS));
         MakeTimeTable(ratio);
         PSGSetClock(&opna->psg, opna->clock / table[p][1], opna->psgrate);
 
