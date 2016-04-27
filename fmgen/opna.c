@@ -171,17 +171,13 @@ static const uint8_t fbtab[8] = { 31, 7, 6, 5, 4, 3, 2, 1 };
 
 /* Amplitude/Phase modulation tables. */
 static const uint8_t amt[4] = { 29, 4, 2, 1 }; // OPNA
-uint8_t aml, pml;
-int     pmv;
+uint8_t aml;
 
 // ---------------------------------------------------------------------------
 static inline void LFO(OPNA *opna)
 {
     uint8_t c = (opna->lfocount >> FM_LFOCBITS) & 0xff;
     opna->lfocount += opna->lfodcount;
-    if (c < 0x40)       pml = c * 2 + 0x80;
-    else if (c < 0xc0)  pml = 0x7f - (c - 0x40) * 2 + 0x80;
-    else                pml = (c - 0xc0) * 2;
     if (c < 0x80)       aml = (c << 1);
     else                aml = ~(c << 1);
 }
@@ -401,8 +397,8 @@ static void KeyOn(FMOperator *op)
         op->keyon = 1;
         if (!op->sl) {
             ShiftPhase(op, sustain);
-            //op->out = op->out2 = 0;
-            //op->pgcount = 0;
+            op->out = op->out2 = 0;
+            op->pgcount = 0;
         } else {
             if (op->phase == off || op->phase == release) {
                 ShiftPhase(op, attack);
@@ -826,7 +822,10 @@ void OPNASetChannelMask(OPNA *opna, uint32_t mask)
         }
     }
     PSGSetChannelMask(&opna->psg, (mask >> 6));
+    if (mask & 0x200) opna->devmask = 3;
 }
+
+#include <stdio.h>
 
 // ---------------------------------------------------------------------------
 // Main OPNA register-set routine. Really long and boring switch-case.
@@ -923,6 +922,7 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
     case 0xb0:  case 0xb1:  case 0xb2:
         opna->ch[c].fb = fbtab[((data >> 3) & 7)];
         SetAlgorithm(&opna->ch[c], data & 7);
+        printf("OP%u: Algorithm: %u, FB: %u\n", c, data & 7, opna->ch[c].fb);
         break;
 
     case 0x1b4: case 0x1b5: case 0x1b6:
@@ -957,9 +957,10 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
         opna->rhythmtl = ~data & 63;
         break;
 
+    case 0x1a:      // Top Cymbal
+        break;
     case 0x18:      // Bass Drum
     case 0x19:      // Snare Drum
-    case 0x1a:      // Top Cymbal
     case 0x1b:      // Hihat
     case 0x1c:      // Tom-tom
     case 0x1d:      // Rim shot
@@ -974,6 +975,7 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
         if (modified & 0x8)
             opna->lfocount = 0;
         opna->lfodcount = opna->reg22 & 8 ? lfotab[opna->reg22 & 7] : 0;
+        printf("LFO: reg22: %u, lfodcount: %u\n", opna->reg22, opna->lfodcount);
         break;
 
     // PSG -------------------------------------------------------------------
@@ -992,7 +994,7 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
                 //uint8_t slottable[4] = { 0, 2, 1, 3 };
                 //uint32_t slot = slottable[(addr >> 2) & 3];
                 uint32_t slottable = 216;
-                uint32_t slot = ((slottable >> (((addr >> 2) & 3) << 1)) & 3);
+                uint32_t l, slot = ((slottable >> (((addr >> 2) & 3) << 1)) & 3);
                 FMOperator* op = &opna->ch[c].op[slot];
 
                 switch ((addr >> 4) & 15)
@@ -1000,7 +1002,13 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
                 case 3: // 30-3E DT/MULTI
                     op->detune = (((data >> 4) & 0x07) * 0x20);
                     op->multiple = (data & 0x0f);
-                    op->paramchanged = 1;
+                    l = ((op->multiple) ? 2*op->multiple : 1);
+                    //  PG Part
+                    op->pgdcount = (op->dp + dttab[op->detune + op->bn]) * (uint32_t)(l * rr);
+                    op->pgdcountl = op->pgdcount >> 11;
+                    //op->paramchanged = 1;
+                    if(!op->mute)
+                    printf("OP%u DT: %u, Mult: %u\n", c, op->detune, op->multiple);
                     break;
 
                 case 4: // 40-4E TL
@@ -1015,27 +1023,36 @@ void OPNASetReg(OPNA *opna, uint32_t addr, uint32_t data)
                     op->ks = ((data >> 6) & 3);
                     op->ar = ((data & 0x1f) * 2);
                     op->paramchanged = 1;
+                    if(!op->mute)
+                    printf("OP%u KS: %u, AR: %u\n", c, op->ks, op->ar);
                     break;
 
                 case 6: // 60-6E DR/AMON
                     op->dr = ((data & 0x1f) * 2);
                     op->amon = ((data & 0x80) != 0);
                     op->paramchanged = 1;
+                    if(!op->mute)
+                    printf("OP%u DR: %u, AM: %u\n", c, op->dr, op->amon);
                     break;
 
                 case 7: // 70-7E SR
                     op->sr = ((data & 0x1f) * 2);
                     op->paramchanged = 1;
+                    if(!op->mute)
+                    printf("OP%u SR: %u\n", c, op->sr);
                     break;
 
                 case 8: // 80-8E SL/RR
                     op->sl = (((data >> 4) & 15) * 4);
                     op->rr = ((data & 0x0f) * 4 + 2);
                     op->paramchanged = 1;
+                    if(!op->mute)
+                    printf("OP%u SL: %u, RR: %u\n", c, op->sl, op->rr);
                     break;
 
                 case 9: // 90-9E SSG-EC
                     op->ssgtype = (data & 0x0f);
+                    printf("OP%u SSG-EG: %u\n", c, op->ssgtype);
                     break;
                 }
             }
