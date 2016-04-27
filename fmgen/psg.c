@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #include "psg.h"
 
 // ---------------------------------------------------------------------------
-// 真真
+// ????
 //
 int      EmitTable[0x20] = { -1, };
 uint32_t enveloptable[16][64] = { 0, };
@@ -87,7 +87,7 @@ void PSGSetClock(PSG *psg, uint32_t clock, uint32_t rate)
 }
 
 // ---------------------------------------------------------------------------
-// 真真真真真真
+// ????????????
 //
 static uint8_t table3[4] = {  0,  1, -1,  0 };
 void MakeEnvelopTable(void)
@@ -286,7 +286,7 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (psg->olevel[2] + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample >>= 2;
+                sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
 
@@ -326,7 +326,7 @@ void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
                     sample += (*p3 + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                sample >>= 2;
+                sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
         }
