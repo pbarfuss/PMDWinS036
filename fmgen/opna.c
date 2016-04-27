@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 #include "op.h"
 #include "psg.h"
 #include "opna.h"
+
 static const uint8_t notetab[128] =
 {
      0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  3,  3,  3,  3,  3,  3,
@@ -141,6 +142,9 @@ static int16_t sinetable[1024] = {
     -24, -23, -21, -20, -18, -16, -15, -13, -12, -10, -9, -7, -6, -4, -2, -1,
 };
 
+static uint8_t cltab[512];
+
+#if 0
 static const unsigned char cltab[256] = {
    0xff, 0xfa, 0xf4, 0xef, 0xea, 0xe5, 0xe0, 0xdb, 0xd6, 0xd2, 0xcd, 0xc9, 0xc5, 0xc0, 0xbc, 0xb8,
    0xb4, 0xb0, 0xad, 0xa9, 0xa5, 0xa2, 0x9e, 0x9b, 0x98, 0x94, 0x91, 0x8e, 0x8b, 0x88, 0x85, 0x82,
@@ -159,14 +163,14 @@ static const unsigned char cltab[256] = {
    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x01, 0x01,
    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00
 };
+#endif
 
+static uint8_t tablemade = 0;
 static uint32_t lfotab[8];
 static const uint8_t fbtab[8] = { 31, 7, 6, 5, 4, 3, 2, 1 };
 
 /* Amplitude/Phase modulation tables. */
-static const float pms[8] = { 0, 1/720., 2/720., 3/720.,  4/720.,  6/720., 12/720.,  24/720. };    // OPNA
 static const uint8_t amt[4] = { 29, 4, 2, 1 }; // OPNA
-static int     pmtable[8][FM_LFOENTS];
 uint8_t aml, pml;
 int     pmv;
 
@@ -442,15 +446,6 @@ static inline uint32_t PGCalc(FMOperator *op)
     return ret;
 }
 
-// Same as above, but with PM if enabled.
-// Same comments as above apply.
-static inline uint32_t PGCalcL(FMOperator *op)
-{
-    uint32_t ret = op->pgcount;
-    op->pgcount += op->pgdcount + ((op->pgdcountl * pmv) >> 5);
-    return ret;
-}
-
 // Clock one FM operator. Does a lookup in the sine table
 // for the waveform to output, possibly frequency-modulating
 // that with the contents of in, then clocks the Phase Generator
@@ -460,18 +455,8 @@ static inline uint32_t PGCalcL(FMOperator *op)
 static inline int32_t Calc(FMOperator *op, int32_t in)
 {
     int32_t tmp = Sine(op->pgcount + (in << 7));
+    op->out = op->egout*tmp;
     PGCalc(op);
-    op->out = op->egout*tmp;
-    return op->out;
-}
-
-// Version of the above that gets used when the chip-internal LFO
-// is enabled. Basically identical to the above, except with more Vibrato.
-static inline int32_t CalcL(FMOperator *op, int32_t in)
-{
-    int32_t tmp = Sine(op->pgcount + (in << 7));
-    PGCalcL(op);
-    op->out = op->egout*tmp;
     return op->out;
 }
 
@@ -491,25 +476,8 @@ static inline void CalcFB(FMOperator *op, uint32_t fb)
     else
         tmp = Sine(op->pgcount + ((in << 6) >> fb));
 
+    op->out = op->egout*tmp;
     PGCalc(op);
-    op->out = op->egout*tmp;
-}
-
-// Version of the above, but with 100% as much LFO as the above.
-// See comment above CalcL() for details/explanation.
-static inline void CalcFBL(FMOperator *op, uint32_t fb)
-{
-    int32_t tmp;
-    int32_t in = op->out + op->out2;
-    op->out2 = op->out;
-
-    if (FM_PRECISEFEEDBACK && fb == 31)
-        tmp = Sine(op->pgcount);
-    else
-        tmp = Sine(op->pgcount + ((in << 6) >> fb));
-
-    PGCalcL(op);
-    op->out = op->egout*tmp;
 }
 
 // ---------------------------------------------------------------------------
@@ -544,7 +512,6 @@ static inline void Ch4Init(Channel4 *ch4)
         OperatorInit(&ch4->op[i]);
     }
     SetAlgorithm(ch4, 0);
-    ch4->pms = pmtable[0];
 }
 
 // Reinit all operators on a given channel if paramchanged=1
@@ -563,7 +530,6 @@ static inline int Ch4Prepare(Channel4 *ch4)
     OperatorPrepare(&ch4->op[2]);
     OperatorPrepare(&ch4->op[3]);
 
-    ch4->pms = pmtable[ch4->op[0].ms & 7];
     if(ch4->op[0].mute && ch4->op[1].mute && ch4->op[2].mute && ch4->op[3].mute) return 0;
     int key = (IsOn(&ch4->op[0]) | IsOn(&ch4->op[1]) | IsOn(&ch4->op[2]) | IsOn(&ch4->op[3])) ? 1 : 0;
     int lfo = ch4->op[0].ms & (ch4->op[0].amon | ch4->op[1].amon | ch4->op[2].amon | ch4->op[3].amon ? 0x37 : 7) ? 2 : 0;
@@ -584,41 +550,22 @@ int32_t Ch4Calc(Channel4 *ch4)
     for(i=0; i<4; i++) {
         if ((ch4->op[i].egstep -= ch4->op[i].egstepd) < 0)
             EGCalc(&ch4->op[i]);
-        ch4->op[i].egout = LogToLin(ch4->op[i].eglevel)*gaintab[ch4->op[i].tl];
-    }
-
-    ch4->buf[0] = ch4->op[0].out; CalcFB(&ch4->op[0], ch4->fb);
-    ch4->buf[ch4->idx[3]] += Calc(&ch4->op[1], ch4->buf[ch4->idx[0]]);
-    ch4->buf[ch4->idx[4]] += Calc(&ch4->op[2], ch4->buf[ch4->idx[1]]);
-    o = (ch4->op[3].out >> 8);
-    Calc(&ch4->op[3], ch4->buf[ch4->idx[2]]);
-    return ((ch4->buf[ch4->idx[5]] >> 8) + o);
-}
-
-// Same as above, but with LFO. Should see if I can merge the two somehow and just set
-// a flag whenever I want to mix in Vibrato/Tremolo effects. Also, this code is basically
-// completely untested, due to the surprising difficulty of finding test samples that
-// actually use the chip-internal LFO. (And if you've somehow found one of those,
-// now try *also* finding a good-quality recording of it being played back on the chip
-// itsself. I should go ask the folks at soundshock.se or something, come to think of it).
-//
-int32_t Ch4CalcL(Channel4 *ch4)
-{
-    int i, o;
-    pmv = ch4->pms[pml];
-    ch4->buf[1] = ch4->buf[2] = ch4->buf[3] = 0;
-    for(i=0; i<4; i++) {
-        if ((ch4->op[i].egstep -= ch4->op[i].egstepd) < 0)
-            EGCalc(&ch4->op[i]);
         ch4->op[i].egout = (LogToLin(ch4->op[i].eglevel + (aml >> amt[ch4->op[i].ams]))*gaintab[ch4->op[i].tl]);
     }
 
-    ch4->buf[0] = ch4->op[0].out; CalcFBL(&ch4->op[0], ch4->fb);
-    ch4->buf[ch4->idx[3]] += CalcL(&ch4->op[1], ch4->buf[ch4->idx[0]]);
-    ch4->buf[ch4->idx[4]] += CalcL(&ch4->op[2], ch4->buf[ch4->idx[1]]);
-    o = (ch4->op[3].out >> 8);
-    CalcL(&ch4->op[3], ch4->buf[ch4->idx[2]]);
-    return ((ch4->buf[ch4->idx[5]] >> 8) + o);
+    ch4->buf[0] = ch4->op[0].out; CalcFB(&ch4->op[0], ch4->fb);
+    if (!(ch4->idx[0] | ch4->idx[2] | ch4->idx[4])) {
+        o  = Calc(&ch4->op[1], ch4->buf[0]);
+        o += Calc(&ch4->op[2], ch4->buf[0]);
+        o += Calc(&ch4->op[3], ch4->buf[0]);
+        return (o >> 8);
+    } else {
+        ch4->buf[ch4->idx[3]] += Calc(&ch4->op[1], ch4->buf[ch4->idx[0]]);
+        ch4->buf[ch4->idx[4]] += Calc(&ch4->op[2], ch4->buf[ch4->idx[1]]);
+        o = ch4->op[3].out;
+        Calc(&ch4->op[3], ch4->buf[ch4->idx[2]]);
+        return ((ch4->buf[ch4->idx[5]] + o) >> 8);
+    }
 }
 
 // This essentially initializes a couple constant tables
@@ -1107,16 +1054,6 @@ uint32_t OPNAGetReg(OPNA *opna, uint32_t addr)
 
 // ---------------------------------------------------------------------------
 
-static inline void MixSubSL(Channel4 ch[6], int activech, int32_t *dest)
-{
-    if (activech & 0x001) (*dest  = Ch4CalcL(&ch[0]));
-    if (activech & 0x004) (*dest += Ch4CalcL(&ch[1]));
-    if (activech & 0x010) (*dest += Ch4CalcL(&ch[2]));
-    if (activech & 0x040) (*dest += Ch4CalcL(&ch[3]));
-    if (activech & 0x100) (*dest += Ch4CalcL(&ch[4]));
-    if (activech & 0x400) (*dest += Ch4CalcL(&ch[5]));
-}
-
 static inline void MixSubS(Channel4 ch[6], int activech, int32_t *dest)
 {
     if (activech & 0x001) (*dest  = Ch4Calc(&ch[0]));
@@ -1144,7 +1081,7 @@ static void Mix6(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
     for (i = 0; i < nsamples; i++) {
         ibuf = 0;
         if (activech & 0xaaa)
-            LFO(opna), MixSubSL(opna->ch, activech, &ibuf);
+            LFO(opna), MixSubS(opna->ch, activech, &ibuf);
         else
             MixSubS(opna->ch, activech, &ibuf);
         buffer[i] += IStoSample(ibuf);
@@ -1166,7 +1103,7 @@ static void Mix6I(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
             while (delta > 0) {
                 ibuf = 0;
                 if (activech & 0xaaa)
-                    LFO(opna), MixSubSL(opna->ch, activech, &ibuf);
+                    LFO(opna), MixSubS(opna->ch, activech, &ibuf);
                 else
                     MixSubS(opna->ch, activech, &ibuf);
 
@@ -1189,7 +1126,7 @@ static void Mix6I(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
 
                 ibuf = 0;
                 if (activech & 0xaaa)
-                    LFO(opna), MixSubSL(opna->ch, activech, &ibuf);
+                    LFO(opna), MixSubS(opna->ch, activech, &ibuf);
                 else
                     MixSubS(opna->ch, activech, &ibuf);
 
@@ -1298,21 +1235,15 @@ void OPNAMix(OPNA *opna, int16_t *buffer, uint32_t nsamples)
 //  I'm not even sure if we should generate it at all for now.
 void MakeTable(void) {
     int i, j;
+    if (tablemade)
+        return;
 
-    //       3       6,      12      30       60       240      420     / 720
-    //  1.000963
-    //  lfofref[level * max * wave];
-    //  pre = lfofref[level][pms * wave >> 8];
-    for (i=0; i<8; i++)
-    {
-        float pmb = pms[i];
-        for (j=0; j<FM_LFOENTS; j++)
-        {
-            pmtable[i][j] =
-                (int)(0x10000 * (expf((float)M_LN2*(pmb * (2*j - FM_LFOENTS+1) / (FM_LFOENTS-1)) - 1)));
-//          LOG4("pmtable[%d][%.2x] = %5d ", i, j, pmtable[i][j]);
-//          LOG1(" %7.2f\n", log(1. + pmtable[i][j] / 65536.) / log(2) * 1200);
-        }
+    tablemade = 1;
+    for (i=0; i<512; i++)
+    {   
+        int c = (int)(((1 << 8) - 1) * expf((float)M_LN2*(-i / 32.0f)));
+        cltab[i] = c;
+//      LOG2("cltab[%4d*2] = %6d\n", i, cltab[i*2]);
     }
 }
 
