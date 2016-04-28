@@ -1094,9 +1094,9 @@ static inline void MixSubS(Channel4 ch[6], int activech, int32_t *dest)
 // to the user-specified samplerate. It is an open problem as to determining
 // if one of these sounds better than the other.
 //
-#define IStoSample(s)   (Limit16((s) >> 3))
+#define IStoSample(s)   (Limit16((s) >> 2))
 
-static void Mix6(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
+static void Mix6(OPNA *opna, int32_t *buffer, uint32_t nsamples, int activech)
 {
     // Mix
     int32_t ibuf;
@@ -1115,7 +1115,7 @@ static void Mix6(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
 // ---------------------------------------------------------------------------
 // See comment above Mix6(), above.
 //
-static void Mix6I(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
+static void Mix6I(OPNA *opna, int32_t *buffer, uint32_t nsamples, int activech)
 {
     // Mix
     int32_t ibuf, delta = opna->mixdelta;
@@ -1172,7 +1172,7 @@ static void Mix6I(OPNA *opna, int16_t *buffer, uint32_t nsamples, int activech)
 // implementation, though another used float and in principle int16_t *should*
 // be sufficient), and be of size at least equal to nsamples.
 //
-static void FMMix(OPNA *opna, int16_t *buffer, uint32_t nsamples)
+static void FMMix(OPNA *opna, int32_t *buffer, uint32_t nsamples)
 {
     uint32_t j;
     {
@@ -1212,7 +1212,7 @@ static void FMMix(OPNA *opna, int16_t *buffer, uint32_t nsamples)
 // the appropriate length of sample for that given samplerate to buffer.
 // The same restrictions on buffer as in FMMix() above apply.
 //
-static void RhythmMix(OPNA *opna, int16_t *buffer, uint32_t count)
+static void RhythmMix(OPNA *opna, int32_t *buffer, uint32_t count)
 {
     unsigned int i, j;
     if (opna->rhythmtvol < 128 && opna->rhythm[0].sample && (opna->rhythmkey & 0x3f)) {
@@ -1220,10 +1220,10 @@ static void RhythmMix(OPNA *opna, int16_t *buffer, uint32_t count)
             Rhythm *r = &opna->rhythm[i];
             if ((opna->rhythmkey & (1 << i)) && r->level >= 0) {
                 int db = Limit(opna->rhythmtl+r->level+r->volume, 127, 0);
-                int vol = 4*cltab[db];
+                int vol = cltab[db];
 
                 for (j = 0; j < count && r->pos < r->size; j++) {
-                    int sample = Limit16(((r->sample[r->pos >> 10] << 8) * vol) >> 12);
+                    int sample = Limit16(((r->sample[r->pos >> 10] << 8) * vol) >> 10);
                     r->pos += r->step;
                     buffer[j] += sample;
                 }
@@ -1236,13 +1236,20 @@ static void RhythmMix(OPNA *opna, int16_t *buffer, uint32_t count)
 // Main OPNA output routine. See FMMix(), RhythmMix() above and PSGMix()
 // in psg.c for details.
 //
-void OPNAMix(OPNA *opna, int16_t *buffer, uint32_t nsamples)
+void OPNAMix(OPNA *opna, int16_t *buf, uint32_t nsamples)
 {
-    unsigned int i;
+    int32_t buffer[16384];
+    unsigned int i, clips = 0;
     for (i = 0; i < nsamples; i++) buffer[i] = 0;
     if(opna->devmask & 1) FMMix(opna, buffer, nsamples);
     if(opna->devmask & 2) PSGMix(&opna->psg, buffer, nsamples);
     if(opna->devmask & 4) RhythmMix(opna, buffer, nsamples);
+    for (i = 0; i < nsamples; i++) {
+        int32_t k = (buffer[i] >> 2);
+        if (k > 32767 || k < -32767) clips++;
+        buf[i] = Limit16(k);
+    }
+    if (clips) printf("clipped %u samples\n", clips);
 }
 
 // ---------------------------------------------------------------------------

@@ -213,7 +213,7 @@ void PSGSetReg(PSG *psg, uint8_t regnum, uint8_t data)
 void PSGInit(PSG *psg)
 {
     int i;
-    float base = 0x4000 / 3.0f;
+    float base = 0x8000 / 3.0f;
     for (i=31; i>=2; i--)
     {
         EmitTable[i] = lrintf(base);
@@ -245,7 +245,7 @@ void PSGInit(PSG *psg)
 // the required precision. This is irrelevant for any PC newer than, well,
 // a 386DX/68040, but important for efficient hardware implementation.
 //
-void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples)
+void PSGMix(PSG *psg, int32_t *dest, uint32_t nsamples)
 {
     uint8_t chenable[3];
     uint8_t r7 = ~psg->reg[7];
