@@ -213,7 +213,7 @@ void PSGSetReg(PSG *psg, uint8_t regnum, uint8_t data)
 void PSGInit(PSG *psg)
 {
     int i;
-    float base = 0x8000 / 3.0f;
+    float base = 0x4000 / 3.0f;
     for (i=31; i>=2; i--)
     {
         EmitTable[i] = lrintf(base);
