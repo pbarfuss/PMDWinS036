@@ -154,18 +154,16 @@ void efffor(EFFWORK *effwork, OPNA *opna, const int *si)
     if(al == -1) {
         effend(effwork, opna);
     } else {
-        effwork->effcnt = al;        // カウント数
+        effwork->effcnt = al; /* Iteration Count */
         cl = *si;
         PSGSetReg(&(opna->psg), 4, *si++);       // 周波数セット
         ch = *si;
         PSGSetReg(&(opna->psg), 5, *si++);       // 周波数セット
         effwork->eswthz = (ch << 8) + cl;
-
         effwork->eswnhz = *si;
         PSGSetReg(&(opna->psg), 6, *si++);       // ノイズ
 
         PSGSetReg(&(opna->psg), 7, ((*si++ << 2) & 0x24) | (PSGGetReg(&(opna->psg), 0x07) & 0xdb));
-
         PSGSetReg(&(opna->psg), 10, *si++);      // ボリューム
         PSGSetReg(&(opna->psg), 11, *si++);      // エンベロープ周波数
         PSGSetReg(&(opna->psg), 12, *si++);      //
@@ -189,7 +187,7 @@ void eff_main(EFFWORK *effwork, OPNA *opna, uint8_t *partmask, int al)
 {
     int priority;
     effwork->psgefcnum = al;
-    if (al == 7 || al == 8) return; // PSG hihat sounds godawful, don't play it at all
+    //if (al == 7 || al == 8) return; // PSG hihat sounds godawful, don't play it at all
     priority = ((al > 10) ? 2 : 1);
     if(effwork->effon <= priority) {
         *partmask |= 2;       // Part Mask
