@@ -39,7 +39,7 @@ void PSGReset(PSG *psg);
 void PSGSetClock(PSG *psg, uint32_t clock, uint32_t rate);
 void PSGSetChannelMask(PSG *psg, int c);
 void PSGSetReg(PSG *psg, uint8_t regnum, uint8_t data);
-void PSGMix(PSG *psg, int16_t *dest, uint32_t nsamples);
+void PSGMix(PSG *psg, int32_t *dest, uint32_t nsamples);
 
 static inline uint32_t PSGGetReg(PSG *psg, uint8_t regnum) {
     return psg->reg[regnum & 0x0f];
