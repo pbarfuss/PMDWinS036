@@ -282,11 +282,11 @@ void PSGMix(PSG *psg, int32_t *dest, uint32_t nsamples)
                     y = ((SCOUNT(1) & chenable[1]) | ((r7 >> 4) & noise)) - 1;
                     sample += (psg->olevel[1] + y) ^ y;
                     psg->scount[1] += psg->speriod[1];
-                    z = ((SCOUNT(2) & chenable[2]) | ((r7 >> 5) & noise)) - 1;
+                    //z = ((SCOUNT(2) & chenable[2]) | ((r7 >> 5) & noise)) - 1;
+                    z = ((r7 >> 5) & noise) - 1;
                     sample += (psg->olevel[2] + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                //sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
 
@@ -322,11 +322,11 @@ void PSGMix(PSG *psg, int32_t *dest, uint32_t nsamples)
                     y = ((SCOUNT(1) & chenable[1]) | ((r7 >> 4) & noise)) - 1;
                     sample += (*p2 + y) ^ y;
                     psg->scount[1] += psg->speriod[1];
-                    z = ((SCOUNT(2) & chenable[2]) | ((r7 >> 5) & noise)) - 1;
+                    //z = ((SCOUNT(2) & chenable[2]) | ((r7 >> 5) & noise)) - 1;
+                    z = ((r7 >> 5) & noise) - 1;
                     sample += (*p3 + z) ^ z;
                     psg->scount[2] += psg->speriod[2];
                 }
-                //sample >>= 1;
                 dest[k++] += Limit16(sample);
             }
         }
