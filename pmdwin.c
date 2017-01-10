@@ -923,121 +923,98 @@ static void neiroset(PMDWIN *pmd, QQ *qq, int dl)
     //  各音色パラメータを設定 (TLはモジュレータのみ)
     //-------------------------------------------------------------------------
 
-    dh = 0x30 - 1 + pmd->open_work.partb;
+    /*
+     * open_work.fmsel is either 0x00 or 0x100, to select the low or high bank of 3 operators on the OPNA.
+     * open_work.partb-1 is the currently active operator (0-3). Together these identify which operator is being programmed.
+     */
+
+    dh = pmd->open_work.partb - 1 + pmd->open_work.fmsel;
     dl = *bx++;             // DT/ML
-    if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x80) OPNASetReg(&pmd->opna, dh + 0x30, dl);
 
     dl = *bx++;
-    if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x40) OPNASetReg(&pmd->opna, dh + 0x34, dl);
 
     dl = *bx++;
-    if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x20) OPNASetReg(&pmd->opna, dh + 0x38, dl);
 
     dl = *bx++;
-    if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x10) OPNASetReg(&pmd->opna, dh + 0x3c, dl);
 
     dl = *bx++;             // TL
-    if(ah & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(ah & 0x80) OPNASetReg(&pmd->opna, dh + 0x40, dl);
 
     dl = *bx++;
-    if(ah & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(ah & 0x40) OPNASetReg(&pmd->opna, dh + 0x44, dl);
 
     dl = *bx++;
-    if(ah & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(ah & 0x20) OPNASetReg(&pmd->opna, dh + 0x48, dl);
 
     dl = *bx++;
-    if(ah & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(ah & 0x10) OPNASetReg(&pmd->opna, dh + 0x4c, dl);
 
     dl = *bx++;             // KS/AR
-    if(al & 0x08) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x08) OPNASetReg(&pmd->opna, dh + 0x50, dl);
 
     dl = *bx++;
-    if(al & 0x04) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x04) OPNASetReg(&pmd->opna, dh + 0x54, dl);
 
     dl = *bx++;
-    if(al & 0x02) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x02) OPNASetReg(&pmd->opna, dh + 0x58, dl);
 
     dl = *bx++;
-    if(al & 0x01) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x01) OPNASetReg(&pmd->opna, dh + 0x5c, dl);
 
     dl = *bx++;             // AM/DR
-    if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x80) OPNASetReg(&pmd->opna, dh + 0x60, dl);
 
     dl = *bx++;
-    if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x40) OPNASetReg(&pmd->opna, dh + 0x64, dl);
 
     dl = *bx++;
-    if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x20) OPNASetReg(&pmd->opna, dh + 0x68, dl);
 
     dl = *bx++;
-    if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x10) OPNASetReg(&pmd->opna, dh + 0x6c, dl);
 
     dl = *bx++;             // SR
-    if(al & 0x08) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x08) OPNASetReg(&pmd->opna, dh + 0x70, dl);
 
     dl = *bx++;
-    if(al & 0x04) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x04) OPNASetReg(&pmd->opna, dh + 0x74, dl);
 
     dl = *bx++;
-    if(al & 0x02) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x02) OPNASetReg(&pmd->opna, dh + 0x78, dl);
 
     dl = *bx++;
-    if(al & 0x01) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x01) OPNASetReg(&pmd->opna, dh + 0x7c, dl);
 
     dl = *bx++;             // SL/RR
     if(al & 0x80) {
-        OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
+        OPNASetReg(&pmd->opna, dh + 0x80, dl);
     }
-    dh+=4;
 
     dl = *bx++;
-    if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x40) OPNASetReg(&pmd->opna, dh + 0x84, dl);
 
     dl = *bx++;
-    if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x20) OPNASetReg(&pmd->opna, dh + 0x88, dl);
 
     dl = *bx++;
-    if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x10) OPNASetReg(&pmd->opna, dh + 0x8c, dl);
 
 /*
     dl = *bx++;             // SL/RR
-    if(al & 0x80) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x80) OPNASetReg(&pmd->opna, dh + dh, dl);
 
     dl = *bx++;
-    if(al & 0x40) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x40) OPNASetReg(&pmd->opna, dh + dh, dl);
 
     dl = *bx++;
-    if(al & 0x20) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x20) OPNASetReg(&pmd->opna, dh + dh, dl);
 
     dl = *bx++;
-    if(al & 0x10) OPNASetReg(&pmd->opna, pmd->open_work.fmsel + dh, dl);
-    dh+=4;
+    if(al & 0x10) OPNASetReg(&pmd->opna, dh + dh, dl);
 */
 
     //-------------------------------------------------------------------------
