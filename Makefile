@@ -8,9 +8,12 @@ all: pmdwin
 clean:
 	rm *.o fmgen/*.o libfmgen.a pmdwin
 
-pmdwin: pmd_play.o pmdwin.o md5.o fmgen/libfmgen.a libaout.a
+pmdwin: pmd_play.o pmdwin.o md5.o fmgen/libfmgen.a libaout/libaout.a
 	$(CC) -o $@ $^
 
 fmgen/libfmgen.a:
 	make -C fmgen
 
+libaout/libaout.a:
+	make -C libaout
+ 
